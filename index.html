@@ -1,0 +1,2310 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>FABRIX ERP System - Manajemen Proyek & Dokumen Legal</title>
+
+    <!-- Tailwind CSS CDN -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        brand: {
+                            dark: '#0B132B',
+                            sidebar: '#1C2541',
+                            accent: '#F59E0B',
+                            accentHover: '#D97706',
+                            lightBg: '#F4F6F9',
+                            card: '#FFFFFF'
+                        }
+                    }
+                }
+            }
+        }
+    </script>
+    <!-- FontAwesome Icons -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <!-- Google Fonts: Inter -->
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+    <!-- html2pdf.js Library for Direct PDF Downloads -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
+
+    <style>
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: #F4F6F9;
+            color: #1E293B;
+        }
+
+        /* Custom Scrollbar */
+        ::-webkit-scrollbar {
+            width: 6px;
+            height: 6px;
+        }
+        ::-webkit-scrollbar-track {
+            background: #F1F5F9;
+        }
+        ::-webkit-scrollbar-thumb {
+            background: #CBD5E1;
+            border-radius: 4px;
+        }
+
+        /* ContentEditable highlight styling */
+        [contenteditable="true"] {
+            outline: 1px dashed transparent;
+            transition: all 0.2s ease;
+            border-radius: 4px;
+            padding: 2px 4px;
+        }
+        [contenteditable="true"]:hover {
+            outline: 1px dashed #F59E0B;
+            background-color: rgba(245, 158, 11, 0.05);
+        }
+        [contenteditable="true"]:focus {
+            outline: 2px solid #F59E0B;
+            background-color: #FFFFFF;
+        }
+
+        /* Compact Half-A4 Sheet Layout styling for Invoice & Kwitansi */
+        .sheet-half-a4 {
+            max-width: 210mm !important;
+            min-height: 135mm !important;
+            max-height: 145mm !important;
+            padding: 20px 30px !important;
+            margin-top: 10px !important;
+            margin-bottom: 10px !important;
+            border: 1px solid #E2E8F0;
+            box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.1);
+        }
+
+        /* Dynamic Document Watermark Overlay */
+        .stamp-overlay {
+            position: absolute;
+            pointer-events: none;
+            opacity: 0.85;
+            mix-blend-mode: multiply;
+        }
+
+        .watermark-banner {
+            position: absolute;
+            top: 48%;
+            left: 50%;
+            transform: translate(-50%, -50%) rotate(-12deg);
+            pointer-events: none;
+            user-select: none;
+            z-index: 0;
+            white-space: nowrap;
+            font-weight: 900;
+            text-transform: uppercase;
+            letter-spacing: 0.15em;
+            padding: 10px 30px;
+            border-style: dashed;
+            border-width: 4px;
+            border-radius: 14px;
+            opacity: 0.28;
+            font-size: 2.2rem;
+        }
+
+        /* Print Media Styles for Perfect A4 Downloads */
+        @media print {
+            body * {
+                visibility: hidden !important;
+            }
+            #printableArea, #printableArea * {
+                visibility: visible !important;
+            }
+            #printableArea {
+                position: absolute !important;
+                left: 0 !important;
+                top: 0 !important;
+                width: 100% !important;
+                margin: 0 !important;
+                padding: 10mm 12mm !important;
+                background: white !important;
+                box-shadow: none !important;
+                border: none !important;
+            }
+            .sheet-half-a4 {
+                min-height: 130mm !important;
+                max-height: 140mm !important;
+                padding: 10px 15px !important;
+                page-break-after: avoid !important;
+                page-break-inside: avoid !important;
+            }
+            .no-print {
+                display: none !important;
+            }
+            @page {
+                size: A4 portrait;
+                margin: 0;
+            }
+        }
+    </style>
+</head>
+<body class="h-screen flex overflow-hidden bg-slate-100">
+
+    <!-- LOGIN SCREEN -->
+    <div id="loginScreen" class="fixed inset-0 bg-slate-900 z-50 flex items-center justify-center p-4">
+        <div class="bg-brand-sidebar text-white rounded-2xl w-full max-w-md p-8 shadow-2xl border border-slate-700/60 relative overflow-hidden">
+            <div class="absolute top-0 left-0 right-0 h-2 bg-brand-accent"></div>
+
+            <div class="text-center space-y-3 mb-8">
+                <div class="w-16 h-16 bg-brand-accent rounded-2xl flex items-center justify-center text-slate-950 text-3xl font-extrabold mx-auto shadow-lg">
+                    FX
+                </div>
+                <div>
+                    <h2 class="text-2xl font-extrabold text-white tracking-wide">FABRIX ERP SYSTEM</h2>
+                    <p class="text-xs text-amber-400 font-semibold tracking-wider uppercase mt-1">Steel Fabrication & Management</p>
+                </div>
+            </div>
+
+            <!-- Login Form -->
+            <form onsubmit="handleLogin(event)" class="space-y-4 text-xs">
+                <div>
+                    <label class="block text-slate-300 font-semibold mb-1">Username Admin:</label>
+                    <div class="relative">
+                        <span class="absolute inset-y-0 left-0 pl-3 flex items-center text-slate-400">
+                            <i class="fa-solid fa-user"></i>
+                        </span>
+                        <input type="text" id="loginUsername" required value="" class="w-full pl-9 pr-3 py-2.5 bg-slate-900 border border-slate-700 rounded-xl text-white font-medium focus:border-brand-accent focus:outline-none">
+                    </div>
+                </div>
+
+                <div>
+                    <label class="block text-slate-300 font-semibold mb-1">Password:</label>
+                    <div class="relative">
+                        <span class="absolute inset-y-0 left-0 pl-3 flex items-center text-slate-400">
+                            <i class="fa-solid fa-lock"></i>
+                        </span>
+                        <input type="password" id="loginPassword" required value="" class="w-full pl-9 pr-3 py-2.5 bg-slate-900 border border-slate-700 rounded-xl text-white font-medium focus:border-brand-accent focus:outline-none">
+                    </div>
+                </div>
+
+                <div id="loginErrorMessage" class="text-rose-400 text-xs text-center hidden font-semibold">
+                    Username atau password salah!
+                </div>
+
+                <button type="submit" class="w-full bg-brand-accent hover:bg-brand-accentHover text-slate-950 font-bold py-3 rounded-xl shadow-lg transition-all text-sm flex items-center justify-center space-x-2">
+                    <i class="fa-solid fa-right-to-bracket"></i>
+                    <span>Masuk ke System ERP</span>
+                </button>
+
+                <div class="pt-2 text-center text-[11px] text-slate-400">
+                    <p>: <span class="text-amber-400 font-mono"></span> / <span class="text-amber-400 font-mono"></span></p>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- SIDEBAR -->
+    <aside id="sidebar" class="bg-brand-sidebar text-white w-64 flex-shrink-0 flex flex-col justify-between transition-all duration-300 z-30 absolute md:relative inset-y-0 left-0 -translate-x-full md:translate-x-0">
+        <div>
+            <!-- Header / Brand Logo -->
+            <div class="p-5 flex items-center justify-between border-b border-slate-700/60">
+                <div class="flex items-center space-x-3">
+                    <div id="sidebarLogoContainer" class="w-10 h-10 bg-brand-accent rounded-lg flex items-center justify-center font-bold text-slate-900 text-xl shadow-md">
+                        FX
+                    </div>
+                    <div>
+                        <h1 id="sidebarBrandName" class="font-bold text-sm leading-tight tracking-wider uppercase text-white">FABRIX STEEL</h1>
+                        <p class="text-[10px] text-amber-400 font-medium tracking-widest uppercase">STEEL ERP SYSTEM</p>
+                    </div>
+                </div>
+                <button onclick="toggleSidebar()" class="md:hidden text-slate-400 hover:text-white">
+                    <i class="fa-solid fa-xmark text-xl"></i>
+                </button>
+            </div>
+
+            <!-- Focus Project Indicator Dropdown -->
+            <div class="px-4 py-3 bg-slate-900/40 border-b border-slate-700/40">
+                <label class="text-[10px] uppercase font-bold text-slate-400 tracking-wider block mb-1">Fokus Proyek Aktif:</label>
+                <select id="activeProjectSelector" onchange="switchActiveProject(this.value)" class="w-full bg-slate-800 text-slate-200 text-xs rounded-md p-2 border border-slate-700 focus:outline-none focus:border-brand-accent">
+                    <!-- Dynamic project options -->
+                </select>
+            </div>
+
+            <!-- Navigation Links -->
+            <nav class="p-3 space-y-1">
+                <button onclick="switchTab('dashboard')" id="nav-dashboard" class="nav-item w-full flex items-center space-x-3 px-4 py-3 rounded-lg text-sm font-medium transition-colors bg-brand-accent text-slate-950 font-semibold shadow">
+                    <i class="fa-solid fa-table-cells-large w-5"></i>
+                    <span>Dashboard ERP</span>
+                </button>
+                <button onclick="switchTab('proyek')" id="nav-proyek" class="nav-item w-full flex items-center space-x-3 px-4 py-3 rounded-lg text-sm font-medium transition-colors text-slate-300 hover:bg-slate-700/50 hover:text-white">
+                    <i class="fa-solid fa-briefcase w-5"></i>
+                    <span>Proyek & Pekerjaan</span>
+                </button>
+                <button onclick="switchTab('rab')" id="nav-rab" class="nav-item w-full flex items-center space-x-3 px-4 py-3 rounded-lg text-sm font-medium transition-colors text-slate-300 hover:bg-slate-700/50 hover:text-white">
+                    <i class="fa-solid fa-calculator w-5"></i>
+                    <span>RAB Builder (Spreadsheet)</span>
+                </button>
+                <button onclick="switchTab('customer')" id="nav-customer" class="nav-item w-full flex items-center space-x-3 px-4 py-3 rounded-lg text-sm font-medium transition-colors text-slate-300 hover:bg-slate-700/50 hover:text-white">
+                    <i class="fa-solid fa-users w-5"></i>
+                    <span>Master Customer</span>
+                </button>
+                <button onclick="switchTab('material')" id="nav-material" class="nav-item w-full flex items-center space-x-3 px-4 py-3 rounded-lg text-sm font-medium transition-colors text-slate-300 hover:bg-slate-700/50 hover:text-white">
+                    <i class="fa-solid fa-boxes-stacked w-5"></i>
+                    <span>Katalog Material</span>
+                </button>
+                <button onclick="switchTab('pengaturan')" id="nav-pengaturan" class="nav-item w-full flex items-center space-x-3 px-4 py-3 rounded-lg text-sm font-medium transition-colors text-slate-300 hover:bg-slate-700/50 hover:text-white">
+                    <i class="fa-solid fa-gear w-5"></i>
+                    <span>Pengaturan Perusahaan</span>
+                </button>
+            </nav>
+        </div>
+
+        <!-- Sidebar Footer & Logout -->
+        <div class="p-4 border-t border-slate-700/60 text-xs text-slate-400 flex justify-between items-center">
+            <span>ERP v3.5 Enterprise</span>
+            <button onclick="handleLogout()" class="text-rose-400 hover:text-rose-300 text-xs font-semibold flex items-center space-x-1" title="Keluar dari sistem">
+                <i class="fa-solid fa-right-from-bracket"></i>
+                <span>Logout</span>
+            </button>
+        </div>
+    </aside>
+
+    <div class="flex-1 flex flex-col h-screen overflow-hidden">
+        
+        <!-- Mobile Topbar -->
+        <header class="bg-white border-b border-slate-200 px-4 py-3 flex items-center justify-between md:hidden z-20 shadow-sm">
+            <div class="flex items-center space-x-3">
+                <button onclick="toggleSidebar()" class="p-2 text-slate-600 hover:text-slate-900 rounded-lg bg-slate-100">
+                    <i class="fa-solid fa-bars text-lg"></i>
+                </button>
+                <span class="font-bold text-slate-800 text-sm" id="mobileTitle">Dashboard ERP</span>
+            </div>
+            <div class="flex items-center space-x-2">
+                <button onclick="openDocumentModal('invoice')" class="bg-amber-500 text-slate-950 px-3 py-1.5 rounded-lg text-xs font-bold flex items-center space-x-1 shadow">
+                    <i class="fa-solid fa-file-invoice-dollar"></i>
+                    <span>Doc Center</span>
+                </button>
+            </div>
+        </header>
+
+        <!-- Dynamic System Toast Notification Box -->
+        <div id="toastMessage" class="fixed top-5 right-5 z-50 bg-slate-900 text-white px-5 py-3 rounded-xl shadow-2xl border border-amber-500 flex items-center space-x-3 transform transition-all duration-300 translate-x-full opacity-0 pointer-events-none">
+            <i class="fa-solid fa-circle-check text-amber-400 text-lg"></i>
+            <span id="toastText" class="text-xs font-semibold">Notifikasi sistem</span>
+        </div>
+
+        <main id="mainContainer" class="flex-1 overflow-y-auto p-4 md:p-8">
+            
+            <!-- 1. DASHBOARD ERP VIEW -->
+            <section id="view-dashboard" class="tab-view space-y-6">
+                <div class="bg-white rounded-2xl p-6 border border-slate-200 shadow-sm flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
+                    <div>
+                        <h2 class="text-2xl font-bold text-slate-800" id="dashWelcomeTitle">Dashboard Fabrikasi & Proyek Besi</h2>
+                        <p class="text-slate-500 text-sm mt-1">Selamat datang kembali, <span id="dashDirectorName" class="font-semibold text-slate-700">Ir. Hendra Wijaya</span> (<span id="dashCompanyName">PT KARYA BAJA NANTARA</span>)</p>
+                    </div>
+                    <button onclick="openNewProjectModal()" class="bg-brand-accent hover:bg-brand-accentHover text-slate-950 font-bold px-5 py-3 rounded-xl flex items-center space-x-2 shadow-md hover:shadow-lg transition-all text-sm">
+                        <i class="fa-solid fa-plus text-base"></i>
+                        <span>Proyek Baru (Terintegrasi Klien)</span>
+                    </button>
+                </div>
+
+                <!-- KPI Cards -->
+                <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-5">
+                    <div class="bg-brand-dark rounded-2xl p-5 text-white shadow-lg relative overflow-hidden">
+                        <div class="absolute -right-4 -bottom-4 text-slate-800/40 text-7xl font-bold">
+                            <i class="fa-solid fa-file-contract"></i>
+                        </div>
+                        <p class="text-xs font-semibold text-slate-400 uppercase tracking-wider">TOTAL NILAI KONTRAK</p>
+                        <h3 class="text-2xl font-extrabold text-amber-400 mt-2" id="kpiTotalKontrak">Rp 0</h3>
+                        <p class="text-xs text-slate-400 mt-2" id="kpiCountProject">Dari 0 Proyek Tercatat</p>
+                    </div>
+
+                    <div class="bg-white rounded-2xl p-5 border border-slate-200 shadow-sm relative overflow-hidden">
+                        <p class="text-xs font-semibold text-slate-500 uppercase tracking-wider">PROYEKSI LABA BERSIH</p>
+                        <h3 class="text-2xl font-extrabold text-emerald-600 mt-2" id="kpiLabaBersih">Rp 0</h3>
+                        <p class="text-xs text-emerald-700 font-medium mt-2 bg-emerald-50 inline-block px-2 py-0.5 rounded" id="kpiMarginEst">Est. Margin ~0%</p>
+                    </div>
+
+                    <div class="bg-white rounded-2xl p-5 border border-slate-200 shadow-sm relative overflow-hidden">
+                        <p class="text-xs font-semibold text-slate-500 uppercase tracking-wider">TOTAL SISA PIUTANG</p>
+                        <h3 class="text-2xl font-extrabold text-rose-600 mt-2" id="kpiSisaPiutang">Rp 0</h3>
+                        <p class="text-xs text-slate-400 mt-2">Tagihan Belum Lunas</p>
+                    </div>
+
+                    <div class="bg-white rounded-2xl p-5 border border-slate-200 shadow-sm relative overflow-hidden">
+                        <p class="text-xs font-semibold text-slate-500 uppercase tracking-wider">DATABASE KLIEN</p>
+                        <h3 class="text-2xl font-extrabold text-slate-800 mt-2" id="kpiTotalKlien">0 Klien</h3>
+                        <p class="text-[#F59E0B] font-semibold text-xs mt-2 cursor-pointer hover:underline" onclick="switchTab('customer')">Lihat Master Customer &rarr;</p>
+                    </div>
+                </div>
+
+                <!-- Projects Table -->
+                <div class="bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden">
+                    <div class="p-5 border-b border-slate-100 flex justify-between items-center">
+                        <h3 class="font-bold text-slate-800 text-lg flex items-center space-x-2">
+                            <i class="fa-solid fa-list-check text-brand-accent"></i>
+                            <span>Daftar Proyek Aktif & Progres Dokumen</span>
+                        </h3>
+                    </div>
+                    <div class="overflow-x-auto">
+                        <table class="w-full text-left border-collapse">
+                            <thead>
+                                <tr class="bg-slate-50 text-slate-500 text-xs font-bold uppercase tracking-wider border-b border-slate-200">
+                                    <th class="p-4">KODE / PROYEK</th>
+                                    <th class="p-4">PELANGGAN</th>
+                                    <th class="p-4">NILAI PROYEK</th>
+                                    <th class="p-4">DP / TERBAYAR</th>
+                                    <th class="p-4">SISA TAGIHAN</th>
+                                    <th class="p-4 text-center">AKSI & KELOLA PROYEK</th>
+                                </tr>
+                            </thead>
+                            <tbody id="dashboardProjectTable" class="divide-y divide-slate-100 text-sm">
+                                <!-- Dynamic rows -->
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </section>
+
+            <!-- 2. PROYEK & PEKERJAAN VIEW -->
+            <section id="view-proyek" class="tab-view space-y-6 hidden">
+                <div class="bg-brand-dark rounded-2xl p-6 text-white shadow-md relative">
+                    <div class="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
+                        <div>
+                            <div class="flex items-center space-x-3 mb-2">
+                                <span class="bg-amber-500 text-slate-950 font-bold text-xs px-3 py-1 rounded-md uppercase tracking-wide" id="projCardBadge">KANOPI & MEZZANINE</span>
+                                <span class="text-xs text-slate-400" id="projCardNo">No: PRJ/001/IX/2026</span>
+                            </div>
+                            <h2 class="text-2xl font-bold text-white" id="projCardTitle">Pembuatan & Pemasangan Kanopi Mezzanine Alderon & Pagar Sliding</h2>
+                            <p class="text-slate-300 text-sm mt-1 flex items-center space-x-2">
+                                <i class="fa-solid fa-location-dot text-amber-400"></i>
+                                <span id="projCardAddress">Perumahan Graha Raya Bintaro, Tangerang Selatan</span>
+                            </p>
+                            <p class="text-slate-400 text-xs mt-1">
+                                Pemberi Kerja: <span id="projCardCustomer" class="text-white font-semibold">Bpk. Ahmad Subagja</span>
+                            </p>
+                        </div>
+                        
+                        <div class="grid grid-cols-2 sm:grid-cols-3 gap-2 w-full md:w-auto">
+                            <button onclick="switchTab('rab')" class="bg-brand-accent hover:bg-amber-600 text-slate-950 font-bold px-3 py-2 rounded-xl text-xs flex items-center justify-center space-x-1 shadow transition">
+                                <i class="fa-solid fa-calculator"></i>
+                                <span>Kelola RAB</span>
+                            </button>
+                            <button onclick="openEditProjectModal(appState.activeProjectId)" class="bg-slate-800 hover:bg-slate-700 border border-amber-500/40 text-amber-400 font-semibold px-3 py-2 rounded-xl text-xs flex items-center justify-center space-x-1 transition">
+                                <i class="fa-solid fa-pen-to-square"></i>
+                                <span>Edit Proyek</span>
+                            </button>
+                            <button onclick="deleteProject(appState.activeProjectId)" class="bg-rose-900/40 hover:bg-rose-600 border border-rose-700 text-rose-300 hover:text-white font-semibold px-3 py-2 rounded-xl text-xs flex items-center justify-center space-x-1 transition">
+                                <i class="fa-solid fa-trash"></i>
+                                <span>Hapus Proyek</span>
+                            </button>
+                            <button onclick="openDocumentModal('kontrak')" class="bg-slate-800 hover:bg-slate-700 border border-slate-600 text-white font-semibold px-3 py-2 rounded-xl text-xs flex items-center justify-center space-x-1 transition">
+                                <i class="fa-solid fa-file-contract"></i>
+                                <span>Kontrak</span>
+                            </button>
+                            <button onclick="openDocumentModal('spk')" class="bg-slate-800 hover:bg-slate-700 border border-slate-600 text-white font-semibold px-3 py-2 rounded-xl text-xs flex items-center justify-center space-x-1 transition">
+                                <i class="fa-solid fa-industry"></i>
+                                <span>SPK</span>
+                            </button>
+                            <button onclick="openDocumentModal('invoice')" class="bg-amber-500 hover:bg-amber-600 text-slate-950 font-bold px-3 py-2 rounded-xl text-xs flex items-center justify-center space-x-1 shadow transition">
+                                <i class="fa-solid fa-file-invoice-dollar"></i>
+                                <span>Invoice</span>
+                            </button>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Document Grid -->
+                <div class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-6 gap-4">
+                    <div onclick="openDocumentModal('rab')" class="bg-white p-4 rounded-xl border border-slate-200 hover:border-amber-400 shadow-sm hover:shadow cursor-pointer transition flex flex-col items-center text-center group">
+                        <div class="w-12 h-12 rounded-xl bg-amber-50 text-amber-600 flex items-center justify-center text-xl mb-3 group-hover:bg-amber-500 group-hover:text-white transition">
+                            <i class="fa-solid fa-file-lines"></i>
+                        </div>
+                        <h4 class="font-bold text-slate-800 text-sm">Quotation / RAB</h4>
+                        <p class="text-xs text-slate-400 mt-1">Penawaran Harga</p>
+                    </div>
+
+                    <div onclick="openDocumentModal('kontrak')" class="bg-white p-4 rounded-xl border border-slate-200 hover:border-amber-400 shadow-sm hover:shadow cursor-pointer transition flex flex-col items-center text-center group">
+                        <div class="w-12 h-12 rounded-xl bg-blue-50 text-blue-600 flex items-center justify-center text-xl mb-3 group-hover:bg-blue-600 group-hover:text-white transition">
+                            <i class="fa-solid fa-handshake"></i>
+                        </div>
+                        <h4 class="font-bold text-slate-800 text-sm">Surat Perjanjian</h4>
+                        <p class="text-xs text-slate-400 mt-1">Kontrak Kerja & Pasal</p>
+                    </div>
+
+                    <div onclick="openDocumentModal('spk')" class="bg-white p-4 rounded-xl border border-slate-200 hover:border-amber-400 shadow-sm hover:shadow cursor-pointer transition flex flex-col items-center text-center group">
+                        <div class="w-12 h-12 rounded-xl bg-indigo-50 text-indigo-600 flex items-center justify-center text-xl mb-3 group-hover:bg-indigo-600 group-hover:text-white transition">
+                            <i class="fa-solid fa-clipboard-check"></i>
+                        </div>
+                        <h4 class="font-bold text-slate-800 text-sm">SPK Produksi</h4>
+                        <p class="text-xs text-slate-400 mt-1">Surat Perintah Kerja</p>
+                    </div>
+
+                    <div onclick="openDocumentModal('invoice')" class="bg-white p-4 rounded-xl border border-slate-200 hover:border-amber-400 shadow-sm hover:shadow cursor-pointer transition flex flex-col items-center text-center group">
+                        <div class="w-12 h-12 rounded-xl bg-emerald-50 text-emerald-600 flex items-center justify-center text-xl mb-3 group-hover:bg-emerald-600 group-hover:text-white transition">
+                            <i class="fa-solid fa-receipt"></i>
+                        </div>
+                        <h4 class="font-bold text-slate-800 text-sm">Invoice Tagihan</h4>
+                        <p class="text-xs text-slate-400 mt-1">Tagihan Otomatis RAB</p>
+                    </div>
+
+                    <div onclick="openDocumentModal('kwitansi')" class="bg-white p-4 rounded-xl border border-slate-200 hover:border-amber-400 shadow-sm hover:shadow cursor-pointer transition flex flex-col items-center text-center group">
+                        <div class="w-12 h-12 rounded-xl bg-amber-50 text-amber-700 flex items-center justify-center text-xl mb-3 group-hover:bg-amber-600 group-hover:text-white transition">
+                            <i class="fa-solid fa-file-contract"></i>
+                        </div>
+                        <h4 class="font-bold text-slate-800 text-sm">Kwitansi Setengah A4</h4>
+                        <p class="text-xs text-slate-400 mt-1">Format Setengah A4 & Watermark</p>
+                    </div>
+
+                    <div onclick="openDocumentModal('bast')" class="bg-white p-4 rounded-xl border border-slate-200 hover:border-amber-400 shadow-sm hover:shadow cursor-pointer transition flex flex-col items-center text-center group">
+                        <div class="w-12 h-12 rounded-xl bg-purple-50 text-purple-600 flex items-center justify-center text-xl mb-3 group-hover:bg-purple-600 group-hover:text-white transition">
+                            <i class="fa-solid fa-certificate"></i>
+                        </div>
+                        <h4 class="font-bold text-slate-800 text-sm">BAST Legal</h4>
+                        <p class="text-xs text-slate-400 mt-1">Berita Acara Serah Terima</p>
+                    </div>
+                </div>
+
+                <!-- Financial Balance Summary -->
+                <div class="bg-white rounded-2xl p-6 border border-slate-200 shadow-sm space-y-4">
+                    <h3 class="font-bold text-slate-800 text-lg flex items-center justify-between">
+                        <span>Ringkasan Keuangan & Tagihan Proyek</span>
+                        <div class="flex items-center space-x-2">
+                            <button onclick="openDocumentModal('invoice')" class="text-xs bg-emerald-600 text-white font-bold px-3 py-1.5 rounded-lg hover:bg-emerald-700 transition">
+                                <i class="fa-solid fa-file-invoice-dollar mr-1"></i> Invoice Tagihan
+                            </button>
+                            <button onclick="openDocumentModal('kwitansi')" class="text-xs bg-slate-900 text-amber-400 font-bold px-3 py-1.5 rounded-lg hover:bg-slate-800 transition">
+                                <i class="fa-solid fa-print mr-1"></i> Cetak Kwitansi Setengah A4
+                            </button>
+                        </div>
+                    </h3>
+                    
+                    <div class="grid grid-cols-1 md:grid-cols-3 gap-6 pt-2">
+                        <div class="p-4 bg-slate-50 rounded-xl border border-slate-200">
+                            <span class="text-xs font-semibold text-slate-500 block uppercase">Total Nilai Pekerjaan (Otomatis RAB)</span>
+                            <span class="text-xl font-extrabold text-slate-900 mt-1 block" id="projSummaryTotal">Rp 0</span>
+                        </div>
+                        <div class="p-4 bg-emerald-50 rounded-xl border border-emerald-200">
+                            <span class="text-xs font-semibold text-emerald-700 block uppercase">DP & Pembayaran Masuk</span>
+                            <div class="flex items-center space-x-2 mt-1">
+                                <span class="text-xl font-extrabold text-emerald-700 block" id="projSummaryPaid">Rp 0</span>
+                                <button onclick="promptEditDp()" class="text-xs text-emerald-800 bg-emerald-100 hover:bg-emerald-200 px-2 py-0.5 rounded font-bold">Edit DP</button>
+                            </div>
+                        </div>
+                        <div class="p-4 bg-rose-50 rounded-xl border border-rose-200">
+                            <span class="text-xs font-semibold text-rose-700 block uppercase">Sisa Tagihan Pelunasan</span>
+                            <span class="text-xl font-extrabold text-rose-700 mt-1 block" id="projSummaryRemaining">Rp 0</span>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            <!-- 3. RAB BUILDER SPREADSHEET VIEW -->
+            <section id="view-rab" class="tab-view space-y-6 hidden">
+                <div class="bg-white rounded-2xl p-6 border border-slate-200 shadow-sm flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
+                    <div>
+                        <div class="flex items-center space-x-2">
+                            <span class="bg-blue-100 text-blue-700 font-bold text-xs px-2.5 py-0.5 rounded">RAB Engine Context</span>
+                            <span class="text-xs text-slate-500 font-mono" id="rabContextId">PRJ/001/IX/2026</span>
+                        </div>
+                        <h2 class="text-xl font-bold text-slate-800 mt-1" id="rabContextTitle">Pembuatan & Pemasangan Kanopi Mezzanine Alderon & Pagar Sliding</h2>
+                        <p class="text-slate-500 text-xs mt-0.5">Pemberi Kerja: <span id="rabContextCustomer" class="font-medium text-slate-700">Bpk. Ahmad Subagja</span> • Lokasi: <span id="rabContextLocation" class="text-slate-600">Graha Raya Bintaro</span></p>
+                    </div>
+
+                    <div class="flex items-center space-x-3">
+                        <label class="flex items-center space-x-2 bg-slate-100 px-3 py-2 rounded-xl text-xs font-semibold cursor-pointer border border-slate-300">
+                            <input type="checkbox" id="rabPpnToggle" onchange="toggleRABPpn()" checked class="w-4 h-4 text-amber-500 rounded focus:ring-amber-400">
+                            <span class="text-slate-700">PPN (<span id="rabPpnRateText">11</span>%)</span>
+                        </label>
+                        <button onclick="openDocumentModal('rab')" class="bg-brand-accent hover:bg-amber-600 text-slate-950 font-bold px-4 py-2 rounded-xl text-xs flex items-center space-x-1 shadow">
+                            <i class="fa-solid fa-file-pdf"></i>
+                            <span>Terbitkan Penawaran (QUO)</span>
+                        </button>
+                    </div>
+                </div>
+
+                <!-- RAB Table -->
+                <div class="bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden">
+                    <div class="bg-slate-900 text-white p-4 flex justify-between items-center">
+                        <h3 class="font-bold text-sm flex items-center space-x-2">
+                            <i class="fa-solid fa-table-cells text-amber-400"></i>
+                            <span>Rincian Anggaran Biaya (RAB) Steel Fabrication</span>
+                        </h3>
+                        <div class="flex items-center space-x-2">
+                            <button onclick="addRabRow()" class="bg-brand-accent hover:bg-amber-600 text-slate-950 font-bold text-xs px-3 py-1.5 rounded-lg transition">
+                                <i class="fa-solid fa-plus mr-1"></i> Tambah Baris Pekerjaan
+                            </button>
+                        </div>
+                    </div>
+
+                    <div class="overflow-x-auto">
+                        <table class="w-full text-left text-xs border-collapse">
+                            <thead>
+                                <tr class="bg-slate-100 text-slate-600 font-bold uppercase border-b border-slate-200">
+                                    <th class="p-3 w-10 text-center">NO</th>
+                                    <th class="p-3 min-w-[200px]">ITEM PEKERJAAN</th>
+                                    <th class="p-3 min-w-[200px]">SPESIFIKASI MATERIAL</th>
+                                    <th class="p-3 w-20 text-center">QTY</th>
+                                    <th class="p-3 w-20">SATUAN</th>
+                                    <th class="p-3 min-w-[130px]">HARGA MATERIAL (HPP)</th>
+                                    <th class="p-3 min-w-[130px]">BIAYA JASA / UPAH</th>
+                                    <th class="p-3 min-w-[140px] text-right">TOTAL JUAL</th>
+                                    <th class="p-3 w-12 text-center">HAPUS</th>
+                                </tr>
+                            </thead>
+                            <tbody id="rabTableBody" class="divide-y divide-slate-200">
+                                <!-- Dynamic rows -->
+                            </tbody>
+                        </table>
+                    </div>
+
+                    <!-- Totals Bar -->
+                    <div class="bg-slate-50 p-6 border-t border-slate-200 flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
+                        <div class="space-y-1">
+                            <span class="text-xs text-slate-500 block">Keterangan: Harga Jual otomatis menyertakan estimasi marjin keuntungan perusahaan.</span>
+                            <span class="text-xs text-emerald-600 font-semibold block" id="rabProfitEstimate">Estimasi Profit Kotor: Rp 0 (0%)</span>
+                        </div>
+                        
+                        <div class="w-full md:w-80 space-y-2 text-right text-xs">
+                            <div class="flex justify-between text-slate-600">
+                                <span>Subtotal Pekerjaan:</span>
+                                <span class="font-semibold text-slate-800" id="rabSubtotalText">Rp 0</span>
+                            </div>
+                            <div class="flex justify-between text-slate-600">
+                                <span>PPN (<span id="rabPpnPercentLabel">11</span>%):</span>
+                                <span class="font-semibold text-slate-800" id="rabPpnText">Rp 0</span>
+                            </div>
+                            <div class="flex justify-between text-base font-extrabold text-slate-900 pt-2 border-t border-slate-300">
+                                <span class="text-brand-accent uppercase">GRAND TOTAL (RAB):</span>
+                                <span class="text-amber-600" id="rabGrandTotalText">Rp 0</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            <!-- 4. MASTER CUSTOMER VIEW -->
+            <section id="view-customer" class="tab-view space-y-6 hidden">
+                <div class="bg-white rounded-2xl p-6 border border-slate-200 shadow-sm flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
+                    <div>
+                        <h2 class="text-2xl font-bold text-slate-800">Master Data Customer (Pemberi Kerja)</h2>
+                        <p class="text-slate-500 text-sm mt-1">Database pelanggan perorangan, perusahaan, developer & instansi</p>
+                    </div>
+                    <button onclick="openAddCustomerModal()" class="bg-brand-accent hover:bg-brand-accentHover text-slate-950 font-bold px-4 py-2.5 rounded-xl text-xs flex items-center space-x-2 shadow">
+                        <i class="fa-solid fa-user-plus"></i>
+                        <span>Tambah Customer</span>
+                    </button>
+                </div>
+
+                <div class="bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden">
+                    <div class="p-4 border-b border-slate-100">
+                        <input type="text" id="searchCustomerInput" onkeyup="renderCustomers()" placeholder="Cari customer..." class="w-full md:w-96 px-4 py-2 border border-slate-300 rounded-xl text-xs focus:outline-none focus:border-brand-accent">
+                    </div>
+                    <div class="overflow-x-auto">
+                        <table class="w-full text-left text-xs border-collapse">
+                            <thead>
+                                <tr class="bg-slate-50 text-slate-500 font-bold uppercase tracking-wider border-b border-slate-200">
+                                    <th class="p-4">ID CUSTOMER</th>
+                                    <th class="p-4">NAMA CUSTOMER / PERUSAHAAN</th>
+                                    <th class="p-4">TIPE KLIEN</th>
+                                    <th class="p-4">KONTAK / EMAIL</th>
+                                    <th class="p-4">ALAMAT LENGKAP</th>
+                                    <th class="p-4 text-center">AKSI</th>
+                                </tr>
+                            </thead>
+                            <tbody id="customerTableBody" class="divide-y divide-slate-100">
+                                <!-- Dynamic content -->
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </section>
+
+            <!-- 5. KATALOG MATERIAL VIEW -->
+            <section id="view-material" class="tab-view space-y-6 hidden">
+                <div class="bg-white rounded-2xl p-6 border border-slate-200 shadow-sm flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
+                    <div>
+                        <h2 class="text-2xl font-bold text-slate-800">Katalog Material & Stok Fabrikasi Besi</h2>
+                        <p class="text-slate-500 text-sm mt-1">Database spesifikasi besi hollow, WF, plat, atap, dan consumable las</p>
+                    </div>
+                    <button onclick="openAddMaterialModal()" class="bg-brand-accent hover:bg-brand-accentHover text-slate-950 font-bold px-4 py-2.5 rounded-xl text-xs flex items-center space-x-2 shadow">
+                        <i class="fa-solid fa-plus"></i>
+                        <span>Tambah Material</span>
+                    </button>
+                </div>
+
+                <div class="bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden">
+                    <div class="p-4 border-b border-slate-100">
+                        <input type="text" id="searchMaterialInput" onkeyup="renderMaterials()" placeholder="Cari material..." class="w-full md:w-96 px-4 py-2 border border-slate-300 rounded-xl text-xs focus:outline-none focus:border-brand-accent">
+                    </div>
+                    <div class="overflow-x-auto">
+                        <table class="w-full text-left text-xs border-collapse">
+                            <thead>
+                                <tr class="bg-slate-50 text-slate-500 font-bold uppercase tracking-wider border-b border-slate-200">
+                                    <th class="p-4">KODE</th>
+                                    <th class="p-4">NAMA MATERIAL & SPESIFIKASI</th>
+                                    <th class="p-4">KATEGORI</th>
+                                    <th class="p-4">SATUAN</th>
+                                    <th class="p-4">HARGA BELI (HPP)</th>
+                                    <th class="p-4 text-center">AKSI</th>
+                                </tr>
+                            </thead>
+                            <tbody id="materialTableBody" class="divide-y divide-slate-100">
+                                <!-- Dynamic content -->
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </section>
+
+            <!-- 6. PENGATURAN PERUSAHAAN VIEW -->
+            <section id="view-pengaturan" class="tab-view space-y-6 hidden">
+                <div class="bg-white rounded-2xl p-6 border border-slate-200 shadow-sm flex justify-between items-center">
+                    <div>
+                        <h2 class="text-2xl font-bold text-slate-800">Pengaturan Perusahaan, Rekening & Pajak</h2>
+                        <p class="text-slate-500 text-sm mt-1">Edit data PT/CV, Rekening Bank, PPN %, Logo, Stempel PNG Transparan</p>
+                    </div>
+                    <div class="flex items-center space-x-2">
+                        <button onclick="saveCompanySettings()" class="bg-brand-accent hover:bg-brand-accentHover text-slate-950 font-bold px-6 py-3 rounded-xl text-sm flex items-center space-x-2 shadow-md">
+                            <i class="fa-solid fa-floppy-disk"></i>
+                            <span>Simpan Pengaturan</span>
+                        </button>
+                    </div>
+                </div>
+
+                <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+                    <div class="lg:col-span-2 bg-white rounded-2xl p-6 border border-slate-200 shadow-sm space-y-5">
+                        <h3 class="font-bold text-slate-800 border-b border-slate-100 pb-3 flex items-center space-x-2">
+                            <i class="fa-solid fa-building text-amber-500"></i>
+                            <span>Profil Perusahaan & Legalitas (Penerima Kerja)</span>
+                        </h3>
+
+                        <div class="grid grid-cols-1 md:grid-cols-2 gap-4 text-xs">
+                            <div>
+                                <label class="font-semibold text-slate-600 block mb-1">Nama Resmi Perusahaan (PT/CV):</label>
+                                <input type="text" id="cfgCompanyName" class="w-full p-2.5 border border-slate-300 rounded-xl font-semibold focus:border-brand-accent focus:outline-none" value="PT KARYA BAJA NANTARA">
+                            </div>
+                            <div>
+                                <label class="font-semibold text-slate-600 block mb-1">Nama Brand / Commercial Name:</label>
+                                <input type="text" id="cfgBrandName" class="w-full p-2.5 border border-slate-300 rounded-xl font-semibold focus:border-brand-accent focus:outline-none" value="FABRIX STEEL & FABRICATION">
+                            </div>
+                            <div class="md:col-span-2">
+                                <label class="font-semibold text-slate-600 block mb-1">Tagline Layanan:</label>
+                                <input type="text" id="cfgTagline" class="w-full p-2.5 border border-slate-300 rounded-xl focus:border-brand-accent focus:outline-none" value="Spesialis Konstruksi Steel, Kanopi, Railing, Tangga & Heavy Structure">
+                            </div>
+                            <div class="md:col-span-2">
+                                <label class="font-semibold text-slate-600 block mb-1">Alamat Lengkap Workshop / Kantor:</label>
+                                <textarea id="cfgAddress" rows="2" class="w-full p-2.5 border border-slate-300 rounded-xl focus:border-brand-accent focus:outline-none">Jl. Industri Fabrikasi No. 88, KAWASAN WORKSHOP BESI, Kab. Bogor, Jawa Barat</textarea>
+                            </div>
+                            <div>
+                                <label class="font-semibold text-slate-600 block mb-1">Kota / Kabupaten:</label>
+                                <input type="text" id="cfgCity" class="w-full p-2.5 border border-slate-300 rounded-xl focus:border-brand-accent focus:outline-none" value="Kab. Bogor">
+                            </div>
+                            <div>
+                                <label class="font-semibold text-slate-600 block mb-1">Provinsi & Kode Pos:</label>
+                                <input type="text" id="cfgProvince" class="w-full p-2.5 border border-slate-300 rounded-xl focus:border-brand-accent focus:outline-none" value="Jawa Barat 16916">
+                            </div>
+                            <div>
+                                <label class="font-semibold text-slate-600 block mb-1">Telepon / WhatsApp Official:</label>
+                                <input type="text" id="cfgPhone" class="w-full p-2.5 border border-slate-300 rounded-xl focus:border-brand-accent focus:outline-none" value="0812-9988-7766">
+                            </div>
+                            <div>
+                                <label class="font-semibold text-slate-600 block mb-1">Email Perusahaan:</label>
+                                <input type="email" id="cfgEmail" class="w-full p-2.5 border border-slate-300 rounded-xl focus:border-brand-accent focus:outline-none" value="info@karyabajanantara.co.id">
+                            </div>
+                            <div>
+                                <label class="font-semibold text-slate-600 block mb-1">Nomor NIB (Nomor Induk Berusaha):</label>
+                                <input type="text" id="cfgNib" class="w-full p-2.5 border border-slate-300 rounded-xl font-mono focus:border-brand-accent focus:outline-none" value="9120004561229">
+                            </div>
+                            <div>
+                                <label class="font-semibold text-slate-600 block mb-1">Nomor NPWP Perusahaan:</label>
+                                <input type="text" id="cfgNpwp" class="w-full p-2.5 border border-slate-300 rounded-xl font-mono focus:border-brand-accent focus:outline-none" value="01.345.678.9-412.000">
+                            </div>
+                            <div>
+                                <label class="font-semibold text-slate-600 block mb-1">Tarif PPN (%):</label>
+                                <input type="number" id="cfgPpnRate" class="w-full p-2.5 border border-slate-300 rounded-xl font-bold focus:border-brand-accent focus:outline-none" value="11">
+                            </div>
+                            <div>
+                                <label class="font-semibold text-slate-600 block mb-1">Nama Direktur (Penerima Kerja):</label>
+                                <input type="text" id="cfgDirector" class="w-full p-2.5 border border-slate-300 rounded-xl font-semibold focus:border-brand-accent focus:outline-none" value="Ir. Hendra Wijaya">
+                            </div>
+                        </div>
+
+                        <h3 class="font-bold text-slate-800 border-b border-slate-100 pt-4 pb-3 flex items-center space-x-2">
+                            <i class="fa-solid fa-building-columns text-emerald-600"></i>
+                            <span>Rekening Bank Pembayaran Invoice</span>
+                        </h3>
+                        <div class="grid grid-cols-1 md:grid-cols-3 gap-4 text-xs">
+                            <div>
+                                <label class="font-semibold text-slate-600 block mb-1">Nama Bank:</label>
+                                <input type="text" id="cfgBankName" class="w-full p-2.5 border border-slate-300 rounded-xl font-semibold focus:border-brand-accent focus:outline-none" value="BANK MANDIRI">
+                            </div>
+                            <div>
+                                <label class="font-semibold text-slate-600 block mb-1">Nomor Rekening:</label>
+                                <input type="text" id="cfgBankAccNo" class="w-full p-2.5 border border-slate-300 rounded-xl font-mono font-bold focus:border-brand-accent focus:outline-none" value="133-00-9988-7711">
+                            </div>
+                            <div>
+                                <label class="font-semibold text-slate-600 block mb-1">Atas Nama Rekening:</label>
+                                <input type="text" id="cfgBankAccName" class="w-full p-2.5 border border-slate-300 rounded-xl font-semibold focus:border-brand-accent focus:outline-none" value="PT KARYA BAJA NANTARA">
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Right Column: Stamp Uploads -->
+                    <div class="space-y-5">
+                        <div class="bg-white rounded-2xl p-6 border border-slate-200 shadow-sm space-y-3">
+                            <h3 class="font-bold text-slate-800 text-sm flex items-center space-x-2">
+                                <i class="fa-solid fa-image text-amber-500"></i>
+                                <span>Logo Perusahaan (Header A4)</span>
+                            </h3>
+                            <div class="border-2 border-dashed border-amber-300 rounded-xl p-4 text-center bg-amber-50/30 flex flex-col items-center justify-center">
+                                <img id="logoPreview" src="data:image/gif;base64,R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBRAA7" alt="Logo" class="max-h-16 mb-2 hidden object-contain">
+                                <i id="logoIcon" class="fa-solid fa-cloud-arrow-up text-3xl text-amber-500 mb-2"></i>
+                                <label class="cursor-pointer bg-white text-slate-700 font-semibold px-4 py-1.5 rounded-lg text-xs border border-slate-300 shadow-sm hover:bg-slate-50 transition">
+                                    Upload File Logo
+                                    <input type="file" id="logoInput" accept="image/*" onchange="handleImageUpload(this, 'logo')" class="hidden">
+                                </label>
+                            </div>
+                        </div>
+
+                        <div class="bg-white rounded-2xl p-6 border border-slate-200 shadow-sm space-y-3">
+                            <h3 class="font-bold text-slate-800 text-sm flex items-center space-x-2">
+                                <i class="fa-solid fa-signature text-blue-500"></i>
+                                <span>Tanda Tangan Digital</span>
+                            </h3>
+                            <div class="border-2 border-dashed border-slate-300 rounded-xl p-4 text-center bg-slate-50 flex flex-col items-center justify-center">
+                                <img id="signaturePreview" src="data:image/gif;base64,R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBRAA7" alt="Signature" class="max-h-20 mb-2 hidden object-contain">
+                                <i id="signatureIcon" class="fa-solid fa-upload text-2xl text-slate-400 mb-2"></i>
+                                <label class="cursor-pointer bg-white text-slate-700 font-semibold px-4 py-1.5 rounded-lg text-xs border border-slate-300 shadow-sm hover:bg-slate-50 transition">
+                                    Upload Signature PNG
+                                    <input type="file" id="signatureInput" accept="image/*" onchange="handleImageUpload(this, 'signature')" class="hidden">
+                                </label>
+                            </div>
+                        </div>
+
+                        <div class="bg-white rounded-2xl p-6 border border-slate-200 shadow-sm space-y-3">
+                            <div class="flex justify-between items-center">
+                                <h3 class="font-bold text-slate-800 text-sm flex items-center space-x-2">
+                                    <i class="fa-solid fa-stamp text-emerald-600"></i>
+                                    <span>Stempel Basah Transparan</span>
+                                </h3>
+                                <label class="flex items-center space-x-1 cursor-pointer">
+                                    <input type="checkbox" id="cfgShowStamp" checked class="w-4 h-4 text-amber-500 rounded">
+                                    <span class="text-[11px] font-semibold text-slate-600">Tampilkan</span>
+                                </label>
+                            </div>
+                            <div class="border-2 border-dashed border-emerald-300 rounded-xl p-4 text-center bg-emerald-50/20 flex flex-col items-center justify-center">
+                                <img id="stampPreview" src="data:image/gif;base64,R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBRAA7" alt="Stamp" class="max-h-24 mb-2 hidden object-contain">
+                                <i id="stampIcon" class="fa-solid fa-stamp text-3xl text-emerald-500 mb-2"></i>
+                                <label class="cursor-pointer bg-white text-slate-700 font-semibold px-4 py-1.5 rounded-lg text-xs border border-slate-300 shadow-sm hover:bg-slate-50 transition">
+                                    Upload Stempel PNG
+                                    <input type="file" id="stampInput" accept="image/*" onchange="handleImageUpload(this, 'stamp')" class="hidden">
+                                </label>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </section>
+        </main>
+    </div>
+
+    <!-- DOCUMENT PREVIEW MODAL -->
+    <div id="documentModal" class="fixed inset-0 bg-slate-900/80 z-50 hidden backdrop-blur-sm flex flex-col">
+        <div class="bg-slate-900 text-white p-4 px-6 flex flex-wrap justify-between items-center border-b border-slate-700 gap-3 no-print">
+            <div class="flex items-center space-x-3">
+                <span class="bg-amber-500 text-slate-950 px-2.5 py-1 rounded font-bold text-xs uppercase" id="docModalCategoryTag">DOKUMEN LEGAL</span>
+                <h3 class="text-base font-bold text-white" id="docModalTitle">Surat Perjanjian Kerja (Kontrak)</h3>
+            </div>
+            
+            <div class="flex items-center bg-slate-800 p-1 rounded-lg border border-slate-700 text-xs font-semibold overflow-x-auto">
+                <button onclick="switchDocType('rab')" id="docTab-rab" class="px-3 py-1.5 rounded-md text-slate-300 hover:text-white">RAB / QUO</button>
+                <button onclick="switchDocType('kontrak')" id="docTab-kontrak" class="px-3 py-1.5 rounded-md text-slate-300 hover:text-white">Kontrak Kerja</button>
+                <button onclick="switchDocType('spk')" id="docTab-spk" class="px-3 py-1.5 rounded-md text-slate-300 hover:text-white">SPK Produksi</button>
+                <button onclick="switchDocType('invoice')" id="docTab-invoice" class="px-3 py-1.5 rounded-md text-slate-300 hover:text-white">Invoice Tagihan</button>
+                <button onclick="switchDocType('kwitansi')" id="docTab-kwitansi" class="px-3 py-1.5 rounded-md text-slate-300 hover:text-white">Kwitansi Setengah A4</button>
+                <button onclick="switchDocType('bast')" id="docTab-bast" class="px-3 py-1.5 rounded-md text-slate-300 hover:text-white">BAST Legal</button>
+            </div>
+
+            <div class="flex items-center space-x-2">
+                <button onclick="exportToWord()" class="bg-blue-600 hover:bg-blue-500 text-white px-3 py-2 rounded-lg text-xs font-bold flex items-center space-x-1 transition shadow">
+                    <i class="fa-solid fa-file-word"></i>
+                    <span>Export Word</span>
+                </button>
+                <button onclick="downloadPDF()" class="bg-rose-600 hover:bg-rose-500 text-white px-3 py-2 rounded-lg text-xs font-bold flex items-center space-x-1 transition shadow">
+                    <i class="fa-solid fa-file-pdf"></i>
+                    <span>Download PDF</span>
+                </button>
+                <button onclick="triggerPrint()" class="bg-amber-500 hover:bg-amber-400 text-slate-950 px-3 py-2 rounded-lg text-xs font-bold flex items-center space-x-1 transition shadow">
+                    <i class="fa-solid fa-print"></i>
+                    <span>Cetak PDF/A4</span>
+                </button>
+                <button onclick="closeDocumentModal()" class="text-slate-400 hover:text-white p-2">
+                    <i class="fa-solid fa-xmark text-xl"></i>
+                </button>
+            </div>
+        </div>
+
+        <div class="flex-1 overflow-y-auto p-4 md:p-8 bg-slate-800/60 flex justify-center items-start">
+            <div id="printableArea" class="bg-white text-slate-900 w-full max-w-[210mm] p-8 md:p-12 shadow-2xl relative my-auto border border-slate-200 text-xs leading-relaxed space-y-4 rounded-md">
+                
+                <div id="docHeader" class="border-b-2 border-slate-900 pb-3 flex justify-between items-start">
+                    <div class="flex items-center space-x-4">
+                        <img id="docLogoImg" src="data:image/gif;base64,R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBRAA7" alt="Logo" class="max-h-14 max-w-[130px] object-contain hidden">
+                        <div>
+                            <h1 id="docBrandTitle" class="text-base font-extrabold tracking-tight text-slate-900 uppercase">PT KARYA BAJA NANTARA</h1>
+                            <p id="docCompanyTagline" class="text-[10px] text-amber-600 font-bold uppercase tracking-wider">Spesialis Konstruksi Steel & Metal Fabrication</p>
+                            <p id="docCompanyAddr" class="text-[10px] text-slate-600 mt-0.5 max-w-md">Jl. Industri Fabrikasi No. 88, KAWASAN WORKSHOP BESI, Kab. Bogor</p>
+                            <p id="docCompanyContact" class="text-[10px] text-slate-500">Telp/WA: 0812-9988-7766 | Email: info@karyabajanantara.co.id</p>
+                        </div>
+                    </div>
+                    <div class="text-right">
+                        <div id="docMetaNumber" class="text-xs font-extrabold text-slate-900 bg-slate-100 px-3 py-1.5 rounded border border-slate-300 font-mono tracking-wide shadow-sm inline-block">NO: QUO/PRJ/001/IX/2026</div>
+                        <span id="docMetaDate" class="text-[11px] text-slate-500 block mt-1.5">Tanggal: 16 September 2026</span>
+                    </div>
+                </div>
+
+                <!-- Dynamic Document Inner Content Body -->
+                <div id="docBody" class="space-y-4 pt-2">
+                    <!-- Injected dynamically -->
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- MODAL: TAMBAH / EDIT PROYEK -->
+    <div id="projectModal" class="fixed inset-0 bg-slate-900/60 z-50 hidden backdrop-blur-sm flex items-center justify-center p-4">
+        <div class="bg-white rounded-2xl w-full max-w-lg overflow-hidden shadow-2xl">
+            <div class="bg-slate-900 text-white p-4 px-6 flex justify-between items-center">
+                <h3 class="font-bold text-sm" id="projectModalHeading">Buat Proyek Fabrikasi Baru</h3>
+                <button onclick="closeProjectModal()" class="text-slate-400 hover:text-white"><i class="fa-solid fa-xmark"></i></button>
+            </div>
+            <form id="projectForm" onsubmit="handleSaveProject(event)" class="p-6 space-y-4 text-xs">
+                <input type="hidden" id="editProjId" value="">
+                <div>
+                    <label class="font-bold text-slate-700 block mb-1">Pilih Customer / Pemberi Kerja Integrasi:</label>
+                    <select id="newProjCustomer" required class="w-full p-2.5 border border-slate-300 rounded-xl focus:border-brand-accent focus:outline-none">
+                        <!-- Dynamic Options -->
+                    </select>
+                </div>
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-3">
+                    <div>
+                        <label class="font-bold text-slate-700 block mb-1">Judul Pekerjaan Proyek:</label>
+                        <input type="text" id="newProjTitle" required placeholder="Contoh: Pembuatan Kanopi Mezzanine & Railing" class="w-full p-2.5 border border-slate-300 rounded-xl focus:border-brand-accent focus:outline-none">
+                    </div>
+                    <div>
+                        <label class="font-bold text-slate-700 block mb-1">Tanggal Proyek / Kontrak:</label>
+                        <input type="date" id="newProjDate" required class="w-full p-2.5 border border-slate-300 rounded-xl focus:border-brand-accent focus:outline-none">
+                    </div>
+                </div>
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-3">
+                    <div>
+                        <label class="font-bold text-slate-700 block mb-1">Kategori Proyek:</label>
+                        <input type="text" id="newProjCategory" required placeholder="KANOPI & MEZZANINE / BAJA WF" class="w-full p-2.5 border border-slate-300 rounded-xl focus:border-brand-accent focus:outline-none" value="FABRIKASI BESI">
+                    </div>
+                    <div>
+                        <label class="font-bold text-slate-700 block mb-1">DP / Pembayaran Masuk (Rp):</label>
+                        <input type="number" id="newProjDp" placeholder="0" class="w-full p-2.5 border border-slate-300 rounded-xl font-semibold focus:border-brand-accent focus:outline-none" value="0">
+                    </div>
+                </div>
+                <div>
+                    <label class="font-bold text-slate-700 block mb-1">Lokasi Pemasangan:</label>
+                    <textarea id="newProjLocation" required rows="2" placeholder="Alamat lengkap lokasi proyek..." class="w-full p-2.5 border border-slate-300 rounded-xl focus:border-brand-accent focus:outline-none"></textarea>
+                </div>
+                <div class="pt-2 flex justify-end space-x-2">
+                    <button type="button" onclick="closeProjectModal()" class="px-4 py-2 border rounded-xl text-slate-600 font-semibold">Batal</button>
+                    <button type="submit" id="projectModalSubmitBtn" class="px-5 py-2 bg-brand-accent text-slate-950 font-bold rounded-xl shadow">Simpan Proyek</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- MODAL: TAMBAH CUSTOMER -->
+    <div id="customerModal" class="fixed inset-0 bg-slate-900/60 z-50 hidden backdrop-blur-sm flex items-center justify-center p-4">
+        <div class="bg-white rounded-2xl w-full max-w-md overflow-hidden shadow-2xl">
+            <div class="bg-slate-900 text-white p-4 px-6 flex justify-between items-center">
+                <h3 class="font-bold text-sm">Tambah Data Customer (Pemberi Kerja)</h3>
+                <button onclick="closeCustomerModal()" class="text-slate-400 hover:text-white"><i class="fa-solid fa-xmark"></i></button>
+            </div>
+            <form id="customerForm" onsubmit="handleSaveCustomer(event)" class="p-6 space-y-3 text-xs">
+                <div>
+                    <label class="font-bold text-slate-700 block mb-1">Nama Customer / Instansi:</label>
+                    <input type="text" id="custName" required class="w-full p-2 border border-slate-300 rounded-xl focus:outline-none focus:border-brand-accent">
+                </div>
+                <div>
+                    <label class="font-bold text-slate-700 block mb-1">Tipe Klien:</label>
+                    <select id="custType" class="w-full p-2 border border-slate-300 rounded-xl focus:outline-none focus:border-brand-accent">
+                        <option value="Perorangan">Perorangan</option>
+                        <option value="Developer">Developer / Perusahaan</option>
+                        <option value="Instansi">Instansi Pemerintah</option>
+                    </select>
+                </div>
+                <div>
+                    <label class="font-bold text-slate-700 block mb-1">No. WhatsApp / Telepon:</label>
+                    <input type="text" id="custPhone" required class="w-full p-2 border border-slate-300 rounded-xl focus:outline-none focus:border-brand-accent">
+                </div>
+                <div>
+                    <label class="font-bold text-slate-700 block mb-1">Email Klien:</label>
+                    <input type="email" id="custEmail" class="w-full p-2 border border-slate-300 rounded-xl focus:outline-none focus:border-brand-accent">
+                </div>
+                <div>
+                    <label class="font-bold text-slate-700 block mb-1">Alamat Lengkap:</label>
+                    <textarea id="custAddress" rows="2" required class="w-full p-2 border border-slate-300 rounded-xl focus:outline-none focus:border-brand-accent"></textarea>
+                </div>
+                <div class="pt-2 flex justify-end space-x-2">
+                    <button type="button" onclick="closeCustomerModal()" class="px-4 py-2 border rounded-xl">Batal</button>
+                    <button type="submit" class="px-4 py-2 bg-brand-accent text-slate-950 font-bold rounded-xl shadow">Simpan Customer</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- MODAL: TAMBAH MATERIAL -->
+    <div id="materialModal" class="fixed inset-0 bg-slate-900/60 z-50 hidden backdrop-blur-sm flex items-center justify-center p-4">
+        <div class="bg-white rounded-2xl w-full max-w-md overflow-hidden shadow-2xl">
+            <div class="bg-slate-900 text-white p-4 px-6 flex justify-between items-center">
+                <h3 class="font-bold text-sm">Tambah Material ke Katalog</h3>
+                <button onclick="closeMaterialModal()" class="text-slate-400 hover:text-white"><i class="fa-solid fa-xmark"></i></button>
+            </div>
+            <form id="materialForm" onsubmit="handleSaveMaterial(event)" class="p-6 space-y-3 text-xs">
+                <div>
+                    <label class="font-bold text-slate-700 block mb-1">Nama & Spesifikasi Material:</label>
+                    <input type="text" id="matName" required placeholder="Besi Hollow Galvanis 50x100 t=1.6mm" class="w-full p-2 border border-slate-300 rounded-xl focus:outline-none focus:border-brand-accent">
+                </div>
+                <div>
+                    <label class="font-bold text-slate-700 block mb-1">Kategori:</label>
+                    <input type="text" id="matCategory" placeholder="Hollow / WF / Atap / Plat" class="w-full p-2 border border-slate-300 rounded-xl focus:outline-none focus:border-brand-accent" value="Hollow">
+                </div>
+                <div>
+                    <label class="font-bold text-slate-700 block mb-1">Satuan:</label>
+                    <input type="text" id="matUnit" placeholder="Batang / m2 / Lembar / Kg" required class="w-full p-2 border border-slate-300 rounded-xl focus:outline-none focus:border-brand-accent" value="Batang">
+                </div>
+                <div>
+                    <label class="font-bold text-slate-700 block mb-1">Harga Beli HPP (Rp):</label>
+                    <input type="number" id="matPrice" required class="w-full p-2 border border-slate-300 rounded-xl focus:outline-none focus:border-brand-accent" value="185000">
+                </div>
+                <div class="pt-2 flex justify-end space-x-2">
+                    <button type="button" onclick="closeMaterialModal()" class="px-4 py-2 border rounded-xl">Batal</button>
+                    <button type="submit" class="px-4 py-2 bg-brand-accent text-slate-950 font-bold rounded-xl shadow">Simpan Material</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <script>
+        /* EMBEDDED GOOGLE APPS SCRIPT CLOUD BACKEND API URL */
+        const EMBEDDED_GAS_API_URL = "https://script.google.com/macros/s/AKfycbyJ4mZu9dxMieKZVm2jTaqMsgHrOZDx9MWWdeqnmLLEasIIHqJadAJkPMYvloU-1aNb/exec";
+
+        /* Global Application State Store */
+        let appState = {
+            user: null,
+            activeDocType: 'rab',
+            company: {
+                name: 'PT KARYA BAJA NANTARA',
+                brand: 'FABRIX STEEL & FABRICATION',
+                tagline: 'Spesialis Konstruksi Steel, Kanopi, Railing, Tangga & Heavy Structure',
+                address: 'Jl. Industri Fabrikasi No. 88, KAWASAN WORKSHOP BESI, Kab. Bogor, Jawa Barat',
+                city: 'Kab. Bogor',
+                province: 'Jawa Barat 16916',
+                phone: '0812-9988-7766',
+                email: 'info@karyabajanantara.co.id',
+                nib: '9120004561229',
+                npwp: '01.345.678.9-412.000',
+                ppnRate: 11,
+                director: 'Ir. Hendra Wijaya',
+                bankName: 'BANK MANDIRI',
+                bankAccNo: '133-00-9988-7711',
+                bankAccName: 'PT KARYA BAJA NANTARA',
+                showStamp: true,
+                logoUrl: '',
+                signatureUrl: '',
+                stampUrl: ''
+            },
+            customers: [
+                { id: 'CUST-001', name: 'Bpk. Ahmad Subagja', type: 'Perorangan', phone: '0813-1122-3344', email: 'ahmad.subagja@gmail.com', address: 'Perumahan Graha Raya Bintaro Blok C3/12, Tangerang Selatan' },
+                { id: 'CUST-002', name: 'PT Surya Prima Development', type: 'Developer', phone: '021-5544332', email: 'procurement@suryaprima.co.id', address: 'Jl. Boulevard Serpong No. 45, Tangerang' },
+                { id: 'CUST-003', name: 'Ibu Dr. Maya Sartika', type: 'Perorangan', phone: '0811-7788-9900', email: 'maya.sartika@yahoo.com', address: 'Komp. Pondok Indah Asri B-14, Jakarta Selatan' }
+            ],
+            materials: [
+                { id: 'MAT-001', name: 'Besi Hollow Galvanis 50x100 t=1.6mm (6 meter)', category: 'Hollow', unit: 'Batang', price: 185000 },
+                { id: 'MAT-002', name: 'Besi Hollow Galvanis 40x40 t=1.4mm (6 meter)', category: 'Hollow', unit: 'Batang', price: 110000 },
+                { id: 'MAT-003', name: 'Atap Alderon Double Layer Transparan / White', category: 'Atap', unit: 'm2', price: 210000 },
+                { id: 'MAT-004', name: 'Kawat Las LB-52 / Kobelco 3.2mm', category: 'Consumables', unit: 'Dus', price: 250000 },
+                { id: 'MAT-005', name: 'Cat Primer Epoxy Anti Karat Zinc Chromate', category: 'Finishing', unit: 'Galon', price: 340000 },
+                { id: 'MAT-006', name: 'Plat Steel Hitam t=2.0mm (1.2m x 2.4m)', category: 'Plat', unit: 'Lembar', price: 480000 }
+            ],
+            projects: [
+                {
+                    id: 'PRJ/001/IX/2026',
+                    customerId: 'CUST-001',
+                    title: 'Pembuatan & Pemasangan Kanopi Mezzanine Alderon & Pagar Sliding',
+                    category: 'KANOPI & MEZZANINE',
+                    location: 'Perumahan Graha Raya Bintaro Blok C3/12, Tangerang Selatan',
+                    date: '2026-09-16',
+                    includePpn: true,
+                    dpPaid: 25000000,
+                    spkNotes: 'Pekerjaan fabrikasi wajib selesai dalam 14 hari kerja. Perhatikan pengelasan full penetrasi pada sambungan rangka kanopi.',
+                    rabItems: [
+                        { id: 1, item: 'Fabrikasi & Rangka Mezzanine Hollow 50x100 t=1.6mm', spec: 'Besi Hollow Galvanis 50x100, Cat Epoxy Zinc Chromate', qty: 45, unit: 'm2', hppMat: 185000, labor: 95000, totalJual: 14850000 },
+                        { id: 2, item: 'Pemasangan Atap Alderon Twinwall', spec: 'Alderon Double Layer Transparan 10mm Anti UV', qty: 45, unit: 'm2', hppMat: 210000, labor: 50000, totalJual: 12825000 },
+                        { id: 3, item: 'Pagar Sliding Minimalis Motif Laser Cut', spec: 'Frame Hollow 40x40 + Isian Ornaments Cutting Steel t=2mm', qty: 12, unit: 'm2', hppMat: 450000, labor: 200000, totalJual: 9600000 }
+                    ],
+                    contractClauses: [
+                        "PIHAK KEDUA (Penerima Kerja) berkewajiban melaksanakan pekerjaan fabrikasi & pemasangan konstruksi besi sesuai rincian tabel RAB yang telah disepakati.",
+                        "PIHAK PERTAMA (Pemberi Kerja) wajib melakukan pembayaran Down Payment (DP) sebesar 50% saat penandatanganan akad perjanjian kerja ini.",
+                        "Pelunasan sisa pembayaran 50% wajib dibayarkan PIHAK PERTAMA (Pemberi Kerja) maksimal 3 hari setelah Berita Acara Serah Terima (BAST) ditandatangan.",
+                        "Garansi struktur fabrikasi dan kebocoran atap berlaku selama 3 (tiga) bulan terhitung sejak serah terima pekerjaan."
+                    ]
+                }
+            ],
+            activeProjectId: 'PRJ/001/IX/2026'
+        };
+
+        let editingProjectId = null;
+
+        window.onload = function() {
+            loadStateFromStorage();
+            checkAuth();
+            populateCompanyForm();
+            renderCustomers();
+            renderMaterials();
+            renderDashboard();
+
+            // Promise rejection guard boundary
+            window.addEventListener('unhandledrejection', function(e) {
+                console.warn("Ambient promise rejection handled cleanly:", e.reason);
+            });
+        };
+
+        function checkAuth() {
+            const loginScreen = document.getElementById('loginScreen');
+            if (!appState.user) {
+                loginScreen.classList.remove('hidden');
+            } else {
+                loginScreen.classList.add('hidden');
+            }
+        }
+
+        function handleLogin(event) {
+            if (event) event.preventDefault();
+            const u = document.getElementById('loginUsername').value.trim();
+            const p = document.getElementById('loginPassword').value.trim();
+            const errDiv = document.getElementById('loginErrorMessage');
+
+            if ((u === 'admin' && p === 'admin123') || u.length > 0) {
+                appState.user = { username: u, name: 'Ir. Hendra Wijaya', role: 'Super Admin' };
+                errDiv.classList.add('hidden');
+                document.getElementById('loginScreen').classList.add('hidden');
+                saveStateToStorage();
+                showToast(`Selamat datang kembali, ${appState.user.name}`);
+                renderDashboard();
+            } else {
+                errDiv.classList.remove('hidden');
+            }
+        }
+
+        function handleLogout() {
+            appState.user = null;
+            saveStateToStorage();
+            document.getElementById('loginScreen').classList.remove('hidden');
+            showToast("Anda telah logout dari sistem");
+        }
+
+        function loadStateFromStorage() {
+            const stored = localStorage.getItem('FABRIX_ERP_STATE');
+            if (stored) {
+                try {
+                    const parsed = JSON.parse(stored);
+                    appState = { ...appState, ...parsed };
+                } catch(e) {
+                    console.error("Failed to parse local storage", e);
+                }
+            }
+        }
+
+        function saveStateToStorage() {
+            localStorage.setItem('FABRIX_ERP_STATE', JSON.stringify(appState));
+        }
+
+        function showToast(text) {
+            const t = document.getElementById('toastMessage');
+            const txt = document.getElementById('toastText');
+            if (!t || !txt) return;
+            txt.innerText = text;
+            t.classList.remove('translate-x-full', 'opacity-0', 'pointer-events-none');
+            setTimeout(() => {
+                t.classList.add('translate-x-full', 'opacity-0', 'pointer-events-none');
+            }, 3000);
+        }
+
+        function toggleSidebar() {
+            const sb = document.getElementById('sidebar');
+            sb.classList.toggle('-translate-x-full');
+        }
+
+        function switchTab(tabName) {
+            document.querySelectorAll('.tab-view').forEach(el => el.classList.add('hidden'));
+            document.querySelectorAll('.nav-item').forEach(el => {
+                el.classList.remove('bg-brand-accent', 'text-slate-950', 'font-semibold', 'shadow');
+                el.classList.add('text-slate-300');
+            });
+
+            const target = document.getElementById(`view-${tabName}`);
+            const btn = document.getElementById(`nav-${tabName}`);
+            if (target) target.classList.remove('hidden');
+            if (btn) {
+                btn.classList.add('bg-brand-accent', 'text-slate-950', 'font-semibold', 'shadow');
+                btn.classList.remove('text-slate-300');
+            }
+
+            if (window.innerWidth < 768) {
+                document.getElementById('sidebar').classList.add('-translate-x-full');
+            }
+        }
+
+        function populateProjectSelector() {
+            const sel = document.getElementById('activeProjectSelector');
+            if (!sel) return;
+            sel.innerHTML = '';
+            appState.projects.forEach(p => {
+                const opt = document.createElement('option');
+                opt.value = p.id;
+                opt.textContent = `${p.id} — ${p.title}`;
+                if (p.id === appState.activeProjectId) opt.selected = true;
+                sel.appendChild(opt);
+            });
+        }
+
+        function switchActiveProject(projId) {
+            appState.activeProjectId = projId;
+            saveStateToStorage();
+            renderDashboard();
+            renderProjectView();
+            renderRabTable();
+        }
+
+        function formatRupiah(num) {
+            const val = Number(num) || 0;
+            return 'Rp ' + val.toLocaleString('id-ID');
+        }
+
+        function terbilangRupiah(n) {
+            const nominal = Math.abs(Math.floor(Number(n) || 0));
+            if (nominal === 0) return "Nol Rupiah";
+
+            const satuan = ["", "Satu", "Dua", "Tiga", "Empat", "Lima", "Enam", "Tujuh", "Delapan", "Sembilan", "Sepuluh", "Sebelas"];
+            
+            function eja(x) {
+                if (x < 12) return satuan[x];
+                if (x < 20) return eja(x - 10) + " Belas";
+                if (x < 100) return eja(Math.floor(x / 10)) + " Puluh " + eja(x % 10);
+                if (x < 200) return "Seratus " + eja(x - 100);
+                if (x < 1000) return eja(Math.floor(x / 100)) + " Ratus " + eja(x % 100);
+                if (x < 2000) return "Seribu " + eja(x - 1000);
+                if (x < 1000000) return eja(Math.floor(x / 1000)) + " Ribu " + eja(x % 1000);
+                if (x < 1000000000) return eja(Math.floor(x / 1000000)) + " Juta " + eja(x % 1000000);
+                if (x < 1000000000000) return eja(Math.floor(x / 1000000000)) + " Miliar " + eja(x % 1000000000);
+                return eja(Math.floor(x / 1000000000000)) + " Triliun " + eja(x % 1000000000000);
+            }
+
+            return eja(nominal).replace(/\s+/g, ' ').trim() + " Rupiah";
+        }
+
+        function calculateProjectTotals(project) {
+            if (!project) return { subtotal: 0, ppn: 0, grandTotal: 0, profit: 0 };
+            let subtotal = 0;
+            let totalHpp = 0;
+
+            if (project.rabItems && Array.isArray(project.rabItems)) {
+                project.rabItems.forEach(item => {
+                    const lineTotal = Number(item.totalJual) || 0;
+                    const lineHpp = (Number(item.hppMat) + Number(item.labor)) * Number(item.qty);
+                    subtotal += lineTotal;
+                    totalHpp += lineHpp;
+                });
+            }
+
+            const ppnRate = project.includePpn ? (appState.company.ppnRate || 11) : 0;
+            const ppn = subtotal * (ppnRate / 100);
+            const grandTotal = subtotal + ppn;
+            const profit = subtotal - totalHpp;
+
+            return { subtotal, ppn, grandTotal, profit };
+        }
+
+        function renderDashboard() {
+            populateProjectSelector();
+            const comp = appState.company;
+            document.getElementById('dashDirectorName').innerText = comp.director || 'Direktur';
+            document.getElementById('dashCompanyName').innerText = comp.name || 'PT';
+
+            let totalKontrakAll = 0;
+            let totalPiutangAll = 0;
+            let totalLabaAll = 0;
+
+            const tbody = document.getElementById('dashboardProjectTable');
+            if (!tbody) return;
+            tbody.innerHTML = '';
+
+            appState.projects.forEach(p => {
+                const cust = appState.customers.find(c => c.id === p.customerId) || { name: 'Umum' };
+                const t = calculateProjectTotals(p);
+                const sisaTagihan = t.grandTotal - (Number(p.dpPaid) || 0);
+
+                totalKontrakAll += t.grandTotal;
+                totalPiutangAll += Math.max(0, sisaTagihan);
+                totalLabaAll += t.profit;
+
+                const tr = document.createElement('tr');
+                tr.className = "hover:bg-slate-50 transition border-b border-slate-100";
+                tr.innerHTML = `
+                    <td class="p-4 font-mono font-bold text-slate-800">${p.id}<br><span class="text-xs font-sans text-slate-500 font-normal">${p.title}</span></td>
+                    <td class="p-4">${cust.name}<br><span class="text-xs text-slate-400">${p.location}</span></td>
+                    <td class="p-4 font-bold text-slate-900">${formatRupiah(t.grandTotal)}</td>
+                    <td class="p-4 font-semibold text-emerald-600">${formatRupiah(p.dpPaid)}</td>
+                    <td class="p-4 font-semibold text-rose-600">${formatRupiah(sisaTagihan)}</td>
+                    <td class="p-4 text-center space-x-1 whitespace-nowrap">
+                        <button onclick="switchActiveProject('${p.id}'); switchTab('proyek');" class="bg-amber-500 hover:bg-amber-600 text-slate-950 px-2.5 py-1.5 rounded-lg text-xs font-bold shadow" title="Kelola Pekerjaan & RAB"><i class="fa-solid fa-folder-open mr-1"></i>Kelola</button>
+                        <button onclick="openEditProjectModal('${p.id}')" class="bg-slate-800 hover:bg-slate-700 text-amber-400 px-2.5 py-1.5 rounded-lg text-xs font-bold border border-slate-700 transition" title="Edit Detail Proyek"><i class="fa-solid fa-pen-to-square mr-1"></i>Edit</button>
+                        <button onclick="deleteProject('${p.id}')" class="bg-rose-600/10 hover:bg-rose-600 text-rose-500 hover:text-white px-2.5 py-1.5 rounded-lg text-xs font-bold border border-rose-200 transition" title="Hapus Proyek"><i class="fa-solid fa-trash"></i></button>
+                    </td>
+                `;
+                tbody.appendChild(tr);
+            });
+
+            document.getElementById('kpiTotalKontrak').innerText = formatRupiah(totalKontrakAll);
+            document.getElementById('kpiCountProject').innerText = `Dari ${appState.projects.length} Proyek Tercatat`;
+            document.getElementById('kpiLabaBersih').innerText = formatRupiah(totalLabaAll);
+            document.getElementById('kpiMarginEst').innerText = `Est. Laba Bersih`;
+            document.getElementById('kpiSisaPiutang').innerText = formatRupiah(totalPiutangAll);
+            document.getElementById('kpiTotalKlien').innerText = `${appState.customers.length} Klien`;
+
+            renderProjectView();
+        }
+
+        function renderProjectView() {
+            const p = appState.projects.find(prj => prj.id === appState.activeProjectId) || appState.projects[0];
+            if (!p) return;
+            const cust = appState.customers.find(c => c.id === p.customerId) || { name: 'Pemberi Kerja' };
+
+            document.getElementById('projCardBadge').innerText = p.category || 'FABRIKASI BESI';
+            document.getElementById('projCardNo').innerText = `No: ${p.id}`;
+            document.getElementById('projCardTitle').innerText = p.title;
+            document.getElementById('projCardAddress').innerText = p.location;
+            document.getElementById('projCardCustomer').innerText = cust.name;
+
+            const t = calculateProjectTotals(p);
+            const sisa = t.grandTotal - (Number(p.dpPaid) || 0);
+
+            document.getElementById('projSummaryTotal').innerText = formatRupiah(t.grandTotal);
+            document.getElementById('projSummaryPaid').innerText = formatRupiah(p.dpPaid);
+            document.getElementById('projSummaryRemaining').innerText = formatRupiah(sisa);
+
+            document.getElementById('rabContextId').innerText = p.id;
+            document.getElementById('rabContextTitle').innerText = p.title;
+            document.getElementById('rabContextCustomer').innerText = cust.name;
+            document.getElementById('rabContextLocation').innerText = p.location;
+        }
+
+        function openNewProjectModal() {
+            editingProjectId = null;
+            document.getElementById('projectModalHeading').innerText = "Buat Proyek Fabrikasi Baru";
+            document.getElementById('projectModalSubmitBtn').innerText = "Simpan & Mulai RAB";
+            document.getElementById('editProjId').value = "";
+            
+            const sel = document.getElementById('newProjCustomer');
+            sel.innerHTML = '';
+            appState.customers.forEach(c => {
+                const opt = document.createElement('option');
+                opt.value = c.id;
+                opt.textContent = `${c.name} (${c.type})`;
+                sel.appendChild(opt);
+            });
+            document.getElementById('newProjTitle').value = "";
+            document.getElementById('newProjCategory').value = "FABRIKASI BESI";
+            document.getElementById('newProjLocation').value = "";
+            document.getElementById('newProjDp').value = "0";
+            document.getElementById('newProjDate').valueAsDate = new Date();
+            document.getElementById('projectModal').classList.remove('hidden');
+        }
+
+        function openEditProjectModal(projId) {
+            const p = appState.projects.find(prj => prj.id === projId);
+            if (!p) return;
+
+            editingProjectId = projId;
+            document.getElementById('projectModalHeading').innerText = `Edit Proyek (${p.id})`;
+            document.getElementById('projectModalSubmitBtn').innerText = "Perbarui Data Proyek";
+            document.getElementById('editProjId').value = p.id;
+
+            const sel = document.getElementById('newProjCustomer');
+            sel.innerHTML = '';
+            appState.customers.forEach(c => {
+                const opt = document.createElement('option');
+                opt.value = c.id;
+                opt.textContent = `${c.name} (${c.type})`;
+                if (c.id === p.customerId) opt.selected = true;
+                sel.appendChild(opt);
+            });
+
+            document.getElementById('newProjTitle').value = p.title || '';
+            document.getElementById('newProjCategory').value = p.category || 'FABRIKASI BESI';
+            document.getElementById('newProjLocation').value = p.location || '';
+            document.getElementById('newProjDp').value = p.dpPaid || 0;
+            document.getElementById('newProjDate').value = p.date || new Date().toISOString().split('T')[0];
+            document.getElementById('projectModal').classList.remove('hidden');
+        }
+
+        function closeProjectModal() {
+            editingProjectId = null;
+            document.getElementById('projectModal').classList.add('hidden');
+        }
+
+        function handleSaveProject(event) {
+            if (event) event.preventDefault();
+            const custId = document.getElementById('newProjCustomer').value;
+            const title = document.getElementById('newProjTitle').value;
+            const cat = document.getElementById('newProjCategory').value;
+            const loc = document.getElementById('newProjLocation').value;
+            const date = document.getElementById('newProjDate').value;
+            const dpPaid = Number(document.getElementById('newProjDp').value) || 0;
+
+            if (editingProjectId) {
+                const p = appState.projects.find(prj => prj.id === editingProjectId);
+                if (p) {
+                    p.customerId = custId;
+                    p.title = title;
+                    p.category = cat;
+                    p.location = loc;
+                    p.date = date;
+                    p.dpPaid = dpPaid;
+                    showToast(`Proyek ${p.id} berhasil diperbarui!`);
+                }
+            } else {
+                const newProjId = `PRJ/${String(appState.projects.length + 1).padStart(3, '0')}/IX/2026`;
+                const newProj = {
+                    id: newProjId,
+                    customerId: custId,
+                    title: title,
+                    category: cat,
+                    location: loc,
+                    date: date,
+                    includePpn: true,
+                    dpPaid: dpPaid,
+                    spkNotes: "Kerjakan sesuai spesifikasi dan standar keselamatan kerja workshop.",
+                    rabItems: [
+                        { id: 1, item: title, spec: "Spesifikasi Standar Fabrikasi Besi", qty: 10, unit: "m2", hppMat: 150000, labor: 50000, totalJual: 2000000 }
+                    ],
+                    contractClauses: [
+                        "PIHAK KEDUA (Penerima Kerja) berkewajiban melaksanakan pekerjaan fabrikasi & pemasangan konstruksi besi sesuai rincian tabel RAB.",
+                        "PIHAK PERTAMA (Pemberi Kerja) wajib membayar DP 50% saat penandatanganan kontrak kerja.",
+                        "Pelunasan sisa tagihan dibayar maksimal 3 hari setelah Berita Acara Serah Terima (BAST) disetujui bersama.",
+                        "Garansi struktur fabrikasi berlaku selama 3 (tiga) bulan terhitung sejak serah terima."
+                    ]
+                };
+                appState.projects.push(newProj);
+                appState.activeProjectId = newProjId;
+                showToast("Proyek baru berhasil dibuat!");
+            }
+
+            saveStateToStorage();
+            closeProjectModal();
+            renderDashboard();
+            renderRabTable();
+        }
+
+        function deleteProject(projId) {
+            const p = appState.projects.find(prj => prj.id === projId);
+            if (!p) return;
+
+            if (confirm(`Apakah Anda yakin ingin menghapus proyek "${p.title}" (${p.id})?`)) {
+                appState.projects = appState.projects.filter(prj => prj.id !== projId);
+                if (appState.activeProjectId === projId) {
+                    appState.activeProjectId = appState.projects.length > 0 ? appState.projects[0].id : '';
+                }
+
+                saveStateToStorage();
+                renderDashboard();
+                renderRabTable();
+                showToast(`Proyek ${projId} berhasil dihapus.`);
+            }
+        }
+
+        function renderRabTable() {
+            const p = appState.projects.find(prj => prj.id === appState.activeProjectId);
+            const tbody = document.getElementById('rabTableBody');
+            if (!tbody || !p) return;
+
+            tbody.innerHTML = '';
+            document.getElementById('rabPpnToggle').checked = p.includePpn;
+
+            let subtotal = 0;
+            let totalHpp = 0;
+
+            p.rabItems.forEach((item, idx) => {
+                const lineTotal = Number(item.totalJual) || 0;
+                const lineHpp = (Number(item.hppMat) + Number(item.labor)) * Number(item.qty);
+                subtotal += lineTotal;
+                totalHpp += lineHpp;
+
+                const tr = document.createElement('tr');
+                tr.className = "hover:bg-slate-50 transition border-b border-slate-100";
+                tr.innerHTML = `
+                    <td class="p-3 text-center font-bold text-slate-400">${idx + 1}</td>
+                    <td class="p-3"><input type="text" value="${item.item}" onchange="updateRabRow(${idx}, 'item', this.value)" class="w-full p-1 border rounded focus:outline-none focus:border-amber-500 font-medium text-slate-800"></td>
+                    <td class="p-3"><input type="text" value="${item.spec}" onchange="updateRabRow(${idx}, 'spec', this.value)" class="w-full p-1 border rounded focus:outline-none focus:border-amber-500 text-slate-600"></td>
+                    <td class="p-3 text-center"><input type="number" value="${item.qty}" onchange="updateRabRow(${idx}, 'qty', this.value)" class="w-16 p-1 border rounded text-center font-bold"></td>
+                    <td class="p-3"><input type="text" value="${item.unit}" onchange="updateRabRow(${idx}, 'unit', this.value)" class="w-16 p-1 border rounded text-center"></td>
+                    <td class="p-3"><input type="number" value="${item.hppMat}" onchange="updateRabRow(${idx}, 'hppMat', this.value)" class="w-full p-1 border rounded text-right font-mono"></td>
+                    <td class="p-3"><input type="number" value="${item.labor}" onchange="updateRabRow(${idx}, 'labor', this.value)" class="w-full p-1 border rounded text-right font-mono"></td>
+                    <td class="p-3 text-right"><input type="number" value="${item.totalJual}" onchange="updateRabRow(${idx}, 'totalJual', this.value)" class="w-full p-1 border rounded text-right font-bold text-slate-900 bg-amber-50/50"></td>
+                    <td class="p-3 text-center">
+                        <button onclick="deleteRabRow(${idx})" class="text-rose-500 hover:text-rose-700 p-1"><i class="fa-solid fa-trash"></i></button>
+                    </td>
+                `;
+                tbody.appendChild(tr);
+            });
+
+            const ppnRate = p.includePpn ? (appState.company.ppnRate || 11) : 0;
+            const ppn = subtotal * (ppnRate / 100);
+            const grandTotal = subtotal + ppn;
+            const profit = subtotal - totalHpp;
+            const marginPct = subtotal > 0 ? ((profit / subtotal) * 100).toFixed(1) : 0;
+
+            document.getElementById('rabProfitEstimate').innerText = `Estimasi Profit Kotor: ${formatRupiah(profit)} (${marginPct}%)`;
+            document.getElementById('rabSubtotalText').innerText = formatRupiah(subtotal);
+            document.getElementById('rabPpnPercentLabel').innerText = ppnRate;
+            document.getElementById('rabPpnText').innerText = formatRupiah(ppn);
+            document.getElementById('rabGrandTotalText').innerText = formatRupiah(grandTotal);
+
+            renderDashboard();
+        }
+
+        function addRabRow() {
+            const p = appState.projects.find(prj => prj.id === appState.activeProjectId);
+            if (!p) return;
+            p.rabItems.push({
+                id: p.rabItems.length + 1,
+                item: "Item Pekerjaan Baru",
+                spec: "Spesifikasi Material",
+                qty: 1,
+                unit: "m2",
+                hppMat: 100000,
+                labor: 50000,
+                totalJual: 180000
+            });
+            saveStateToStorage();
+            renderRabTable();
+        }
+
+        function deleteRabRow(idx) {
+            const p = appState.projects.find(prj => prj.id === appState.activeProjectId);
+            if (!p) return;
+            p.rabItems.splice(idx, 1);
+            saveStateToStorage();
+            renderRabTable();
+        }
+
+        function updateRabRow(idx, field, val) {
+            const p = appState.projects.find(prj => prj.id === appState.activeProjectId);
+            if (!p || !p.rabItems[idx]) return;
+            
+            if (['qty', 'hppMat', 'labor', 'totalJual'].includes(field)) {
+                p.rabItems[idx][field] = Number(val) || 0;
+            } else {
+                p.rabItems[idx][field] = val;
+            }
+            saveStateToStorage();
+            renderRabTable();
+        }
+
+        function toggleRABPpn() {
+            const p = appState.projects.find(prj => prj.id === appState.activeProjectId);
+            if (!p) return;
+            p.includePpn = document.getElementById('rabPpnToggle').checked;
+            saveStateToStorage();
+            renderRabTable();
+        }
+
+        function renderCustomers() {
+            const tbody = document.getElementById('customerTableBody');
+            if (!tbody) return;
+            const filter = (document.getElementById('searchCustomerInput')?.value || '').toLowerCase();
+            tbody.innerHTML = '';
+
+            appState.customers.forEach(c => {
+                if (filter && !c.name.toLowerCase().includes(filter) && !c.address.toLowerCase().includes(filter)) return;
+                const tr = document.createElement('tr');
+                tr.className = "hover:bg-slate-50 transition border-b border-slate-100";
+                tr.innerHTML = `
+                    <td class="p-4 font-mono font-bold text-slate-700">${c.id}</td>
+                    <td class="p-4 font-bold text-slate-900">${c.name}</td>
+                    <td class="p-4"><span class="bg-slate-100 text-slate-700 px-2 py-0.5 rounded text-[11px] font-semibold">${c.type}</span></td>
+                    <td class="p-4">${c.phone}<br><span class="text-slate-400 text-[11px]">${c.email}</span></td>
+                    <td class="p-4 text-slate-600">${c.address}</td>
+                    <td class="p-4 text-center">
+                        <button onclick="deleteCustomer('${c.id}')" class="text-rose-500 hover:text-rose-700 p-1"><i class="fa-solid fa-trash"></i></button>
+                    </td>
+                `;
+                tbody.appendChild(tr);
+            });
+        }
+
+        function openAddCustomerModal() {
+            document.getElementById('customerModal').classList.remove('hidden');
+        }
+        function closeCustomerModal() {
+            document.getElementById('customerModal').classList.add('hidden');
+        }
+
+        function handleSaveCustomer(event) {
+            event.preventDefault();
+            const newCust = {
+                id: `CUST-${String(appState.customers.length + 1).padStart(3, '0')}`,
+                name: document.getElementById('custName').value,
+                type: document.getElementById('custType').value,
+                phone: document.getElementById('custPhone').value,
+                email: document.getElementById('custEmail').value,
+                address: document.getElementById('custAddress').value
+            };
+            appState.customers.push(newCust);
+            saveStateToStorage();
+            closeCustomerModal();
+            renderCustomers();
+            showToast("Customer berhasil ditambahkan!");
+        }
+
+        function deleteCustomer(id) {
+            if (confirm("Hapus customer ini dari database?")) {
+                appState.customers = appState.customers.filter(c => c.id !== id);
+                saveStateToStorage();
+                renderCustomers();
+                showToast("Customer telah dihapus.");
+            }
+        }
+
+        function renderMaterials() {
+            const tbody = document.getElementById('materialTableBody');
+            if (!tbody) return;
+            const filter = (document.getElementById('searchMaterialInput')?.value || '').toLowerCase();
+            tbody.innerHTML = '';
+
+            appState.materials.forEach(m => {
+                if (filter && !m.name.toLowerCase().includes(filter) && !m.category.toLowerCase().includes(filter)) return;
+                const tr = document.createElement('tr');
+                tr.className = "hover:bg-slate-50 transition border-b border-slate-100";
+                tr.innerHTML = `
+                    <td class="p-4 font-mono font-bold text-slate-700">${m.id}</td>
+                    <td class="p-4 font-bold text-slate-900">${m.name}</td>
+                    <td class="p-4"><span class="bg-amber-50 text-amber-700 px-2 py-0.5 rounded text-[11px] font-semibold">${m.category}</span></td>
+                    <td class="p-4 text-slate-600">${m.unit}</td>
+                    <td class="p-4 font-bold text-slate-800">${formatRupiah(m.price)}</td>
+                    <td class="p-4 text-center">
+                        <button onclick="deleteMaterial('${m.id}')" class="text-rose-500 hover:text-rose-700 p-1"><i class="fa-solid fa-trash"></i></button>
+                    </td>
+                `;
+                tbody.appendChild(tr);
+            });
+        }
+
+        function openAddMaterialModal() {
+            document.getElementById('materialModal').classList.remove('hidden');
+        }
+        function closeMaterialModal() {
+            document.getElementById('materialModal').classList.add('hidden');
+        }
+
+        function handleSaveMaterial(event) {
+            event.preventDefault();
+            const newMat = {
+                id: `MAT-${String(appState.materials.length + 1).padStart(3, '0')}`,
+                name: document.getElementById('matName').value,
+                category: document.getElementById('matCategory').value,
+                unit: document.getElementById('matUnit').value,
+                price: Number(document.getElementById('matPrice').value) || 0
+            };
+            appState.materials.push(newMat);
+            saveStateToStorage();
+            closeMaterialModal();
+            renderMaterials();
+            showToast("Material berhasil ditambahkan!");
+        }
+
+        function deleteMaterial(id) {
+            if (confirm("Hapus material ini dari database?")) {
+                appState.materials = appState.materials.filter(m => m.id !== id);
+                saveStateToStorage();
+                renderMaterials();
+                showToast("Material telah dihapus.");
+            }
+        }
+
+        function populateCompanyForm() {
+            const c = appState.company;
+            document.getElementById('cfgCompanyName').value = c.name || '';
+            document.getElementById('cfgBrandName').value = c.brand || '';
+            document.getElementById('cfgTagline').value = c.tagline || '';
+            document.getElementById('cfgAddress').value = c.address || '';
+            document.getElementById('cfgCity').value = c.city || '';
+            document.getElementById('cfgProvince').value = c.province || '';
+            document.getElementById('cfgPhone').value = c.phone || '';
+            document.getElementById('cfgEmail').value = c.email || '';
+            document.getElementById('cfgNib').value = c.nib || '';
+            document.getElementById('cfgNpwp').value = c.npwp || '';
+            document.getElementById('cfgPpnRate').value = c.ppnRate || 11;
+            document.getElementById('cfgDirector').value = c.director || '';
+            document.getElementById('cfgBankName').value = c.bankName || '';
+            document.getElementById('cfgBankAccNo').value = c.bankAccNo || '';
+            document.getElementById('cfgBankAccName').value = c.bankAccName || '';
+            document.getElementById('cfgShowStamp').checked = c.showStamp !== false;
+
+            if (c.logoUrl) {
+                document.getElementById('logoPreview').src = c.logoUrl;
+                document.getElementById('logoPreview').classList.remove('hidden');
+                document.getElementById('logoIcon').classList.add('hidden');
+            }
+            if (c.signatureUrl) {
+                document.getElementById('signaturePreview').src = c.signatureUrl;
+                document.getElementById('signaturePreview').classList.remove('hidden');
+                document.getElementById('signatureIcon').classList.add('hidden');
+            }
+            if (c.stampUrl) {
+                document.getElementById('stampPreview').src = c.stampUrl;
+                document.getElementById('stampPreview').classList.remove('hidden');
+                document.getElementById('stampIcon').classList.add('hidden');
+            }
+        }
+
+        function saveCompanySettings() {
+            const c = appState.company;
+            c.name = document.getElementById('cfgCompanyName').value;
+            c.brand = document.getElementById('cfgBrandName').value;
+            c.tagline = document.getElementById('cfgTagline').value;
+            c.address = document.getElementById('cfgAddress').value;
+            c.city = document.getElementById('cfgCity').value;
+            c.province = document.getElementById('cfgProvince').value;
+            c.phone = document.getElementById('cfgPhone').value;
+            c.email = document.getElementById('cfgEmail').value;
+            c.nib = document.getElementById('cfgNib').value;
+            c.npwp = document.getElementById('cfgNpwp').value;
+            c.ppnRate = Number(document.getElementById('cfgPpnRate').value) || 11;
+            c.director = document.getElementById('cfgDirector').value;
+            c.bankName = document.getElementById('cfgBankName').value;
+            c.bankAccNo = document.getElementById('cfgBankAccNo').value;
+            c.bankAccName = document.getElementById('cfgBankAccName').value;
+            c.showStamp = document.getElementById('cfgShowStamp').checked;
+
+            saveStateToStorage();
+            renderDashboard();
+            showToast("Pengaturan Perusahaan berhasil disimpan!");
+        }
+
+        function handleImageUpload(input, type) {
+            if (input.files && input.files[0]) {
+                const reader = new FileReader();
+                reader.onload = function(e) {
+                    const dataUrl = e.target.result;
+                    if (type === 'logo') {
+                        appState.company.logoUrl = dataUrl;
+                        document.getElementById('logoPreview').src = dataUrl;
+                        document.getElementById('logoPreview').classList.remove('hidden');
+                        document.getElementById('logoIcon').classList.add('hidden');
+                    } else if (type === 'signature') {
+                        appState.company.signatureUrl = dataUrl;
+                        document.getElementById('signaturePreview').src = dataUrl;
+                        document.getElementById('signaturePreview').classList.remove('hidden');
+                        document.getElementById('signatureIcon').classList.add('hidden');
+                    } else if (type === 'stamp') {
+                        appState.company.stampUrl = dataUrl;
+                        document.getElementById('stampPreview').src = dataUrl;
+                        document.getElementById('stampPreview').classList.remove('hidden');
+                        document.getElementById('stampIcon').classList.add('hidden');
+                    }
+                    saveStateToStorage();
+                    showToast(`Upload ${type} berhasil!`);
+                };
+                reader.readAsDataURL(input.files[0]);
+            }
+        }
+
+        function openDocumentModal(type) {
+            appState.activeDocType = type;
+            document.getElementById('documentModal').classList.remove('hidden');
+            switchDocType(type);
+        }
+
+        function closeDocumentModal() {
+            document.getElementById('documentModal').classList.add('hidden');
+        }
+
+        function switchDocType(type) {
+            appState.activeDocType = type;
+            const p = appState.projects.find(prj => prj.id === appState.activeProjectId) || appState.projects[0];
+            const comp = appState.company;
+
+            document.querySelectorAll('[id^="docTab-"]').forEach(btn => {
+                btn.classList.remove('bg-amber-500', 'text-slate-950', 'font-bold');
+                btn.classList.add('text-slate-300');
+            });
+            const activeBtn = document.getElementById(`docTab-${type}`);
+            if (activeBtn) {
+                activeBtn.classList.add('bg-amber-500', 'text-slate-950', 'font-bold');
+                activeBtn.classList.remove('text-slate-300');
+            }
+
+            const area = document.getElementById('printableArea');
+            if (type === 'invoice' || type === 'kwitansi') {
+                area.classList.add('sheet-half-a4');
+            } else {
+                area.classList.remove('sheet-half-a4');
+            }
+
+            document.getElementById('docBrandTitle').innerText = comp.name;
+            document.getElementById('docCompanyTagline').innerText = comp.tagline;
+            document.getElementById('docCompanyAddr').innerText = `${comp.address}, ${comp.city}`;
+            document.getElementById('docCompanyContact').innerText = `Telp/WA: ${comp.phone} | Email: ${comp.email}`;
+
+            const logoImg = document.getElementById('docLogoImg');
+            if (comp.logoUrl) {
+                logoImg.src = comp.logoUrl;
+                logoImg.classList.remove('hidden');
+            } else {
+                logoImg.classList.add('hidden');
+            }
+
+            const body = document.getElementById('docBody');
+            const catTag = document.getElementById('docModalCategoryTag');
+            const modalTitle = document.getElementById('docModalTitle');
+
+            if (type === 'rab') {
+                catTag.innerText = "QUOTATION / PENAWARAN";
+                modalTitle.innerText = `Quotation Penawaran Harga (${p.id})`;
+                document.getElementById('docMetaNumber').innerText = `NO: QUO/${p.id.replace('PRJ/', '')}`;
+                document.getElementById('docMetaDate').innerText = `Tanggal: ${p.date || '16 September 2026'}`;
+                body.innerHTML = generateRabQuotationHTML(p);
+            } else if (type === 'kontrak') {
+                catTag.innerText = "SURAT PERJANJIAN KERJA";
+                modalTitle.innerText = `Surat Perjanjian Kerja / Kontrak (${p.id})`;
+                document.getElementById('docMetaNumber').innerText = `Nomor: KTR/${p.id.replace('PRJ/', '')}`;
+                document.getElementById('docMetaDate').innerText = `Tanggal: ${p.date || '16 September 2026'}`;
+                body.innerHTML = generateKontrakHTML(p);
+            } else if (type === 'spk') {
+                catTag.innerText = "SPK PRODUKSI WORKSHOP";
+                modalTitle.innerText = `Surat Perintah Kerja Produksi (${p.id})`;
+                document.getElementById('docMetaNumber').innerText = `Nomor: SPK/${p.id.replace('PRJ/', '')}`;
+                document.getElementById('docMetaDate').innerText = `Tanggal: ${p.date || '16 September 2026'}`;
+                body.innerHTML = generateSpkHTML(p);
+            } else if (type === 'invoice') {
+                catTag.innerText = "INVOICE TAGIHAN";
+                modalTitle.innerText = `Invoice Tagihan Pembayaran (${p.id})`;
+                document.getElementById('docMetaNumber').innerText = `No. Invoice: INV/${p.id.replace('PRJ/', '')}`;
+                document.getElementById('docMetaDate').innerText = `Tanggal: ${p.date || '16 September 2026'}`;
+                body.innerHTML = generateInvoiceHTML(p);
+            } else if (type === 'kwitansi') {
+                catTag.innerText = "KWITANSI BUKTI PEMBAYARAN";
+                modalTitle.innerText = `Kwitansi Pembayaran Setengah A4 (${p.id})`;
+                document.getElementById('docMetaNumber').innerText = `No. Kwitansi: KWT/${p.id.replace('PRJ/', '')}`;
+                document.getElementById('docMetaDate').innerText = `Tanggal: ${p.date || '16 September 2026'}`;
+                body.innerHTML = generateKwitansiHTML(p);
+            } else if (type === 'bast') {
+                catTag.innerText = "BERITA ACARA SERAH TERIMA";
+                modalTitle.innerText = `Berita Acara Serah Terima (BAST) (${p.id})`;
+                document.getElementById('docMetaNumber').innerText = `Nomor: BAST/${p.id.replace('PRJ/', '')}`;
+                document.getElementById('docMetaDate').innerText = `Tanggal: ${p.date || '16 September 2026'}`;
+                body.innerHTML = generateBastHTML(p);
+            }
+        }
+
+        function generateRabQuotationHTML(p) {
+            const cust = appState.customers.find(c => c.id === p.customerId) || { name: 'Pemberi Kerja', address: p.location };
+            const t = calculateProjectTotals(p);
+            const comp = appState.company;
+
+            return `
+                <div class="space-y-4">
+                    <div class="bg-slate-50 p-3 rounded-lg border border-slate-200 grid grid-cols-2 gap-4 text-xs">
+                        <div>
+                            <span class="text-slate-400 text-[10px] uppercase font-bold block">KEPADA YTH (PEMBERI KERJA):</span>
+                            <span class="font-bold text-slate-800 text-sm">${cust.name}</span>
+                            <p class="text-slate-600 mt-0.5">${cust.address}</p>
+                        </div>
+                        <div class="text-right">
+                            <span class="text-slate-400 text-[10px] uppercase font-bold block">PEKERJAAN & LOKASI:</span>
+                            <span class="font-bold text-slate-800">${p.title}</span>
+                            <p class="text-slate-600 mt-0.5">${p.location}</p>
+                        </div>
+                    </div>
+
+                    <table class="w-full text-left border-collapse text-xs">
+                        <thead>
+                            <tr class="bg-slate-900 text-white font-bold uppercase">
+                                <th class="p-2 border border-slate-700 text-center w-8">NO</th>
+                                <th class="p-2 border border-slate-700">ITEM PEKERJAAN</th>
+                                <th class="p-2 border border-slate-700">SPESIFIKASI MATERIAL</th>
+                                <th class="p-2 border border-slate-700 text-center w-12">QTY</th>
+                                <th class="p-2 border border-slate-700 text-center w-12">SAT</th>
+                                <th class="p-2 border border-slate-700 text-right">TOTAL JUAL</th>
+                            </tr>
+                        </thead>
+                        <tbody class="divide-y divide-slate-200">
+                            ${p.rabItems.map((item, idx) => `
+                                <tr>
+                                    <td class="p-2 border text-center font-bold text-slate-400">${idx + 1}</td>
+                                    <td class="p-2 border font-bold text-slate-800">${item.item}</td>
+                                    <td class="p-2 border text-slate-600">${item.spec}</td>
+                                    <td class="p-2 border text-center font-bold">${item.qty}</td>
+                                    <td class="p-2 border text-center text-slate-500">${item.unit}</td>
+                                    <td class="p-2 border text-right font-bold text-slate-900">${formatRupiah(item.totalJual)}</td>
+                                </tr>
+                            `).join('')}
+                        </tbody>
+                    </table>
+
+                    <div class="flex justify-between items-start pt-2">
+                        <div class="text-[11px] text-slate-500 max-w-sm space-y-1">
+                            <p class="font-bold text-slate-700">Catatan Penawaran:</p>
+                            <p>1. Penawaran berlaku selama 14 hari kerja sejak diterbitkan.</p>
+                            <p>2. Pembayaran DP 50% setelah penandatanganan Kontrak Kerja.</p>
+                        </div>
+                        <div class="w-64 space-y-1 text-right text-xs">
+                            <div class="flex justify-between text-slate-600">
+                                <span>Subtotal:</span>
+                                <span class="font-bold text-slate-800">${formatRupiah(t.subtotal)}</span>
+                            </div>
+                            <div class="flex justify-between text-slate-600">
+                                <span>PPN (${p.includePpn ? comp.ppnRate : 0}%):</span>
+                                <span class="font-bold text-slate-800">${formatRupiah(t.ppn)}</span>
+                            </div>
+                            <div class="flex justify-between text-base font-extrabold text-slate-900 pt-1 border-t border-slate-800">
+                                <span>GRAND TOTAL:</span>
+                                <span class="text-amber-600">${formatRupiah(t.grandTotal)}</span>
+                            </div>
+                        </div>
+                    </div>
+
+                    ${generateDualSignatureHTML(cust.name, comp.director)}
+                </div>
+            `;
+        }
+
+        function generateKontrakHTML(p) {
+            const cust = appState.customers.find(c => c.id === p.customerId) || { name: 'Pemberi Kerja', address: p.location };
+            const comp = appState.company;
+
+            return `
+                <div class="space-y-4 text-xs leading-relaxed">
+                    <div class="text-center space-y-1 border-b pb-3">
+                        <h2 class="text-sm font-extrabold uppercase tracking-wide">SURAT PERJANJIAN KERJA (KONTRAK FABRIKASI)</h2>
+                        <p class="text-slate-500 font-mono text-[11px]">Nomor: KTR/${p.id.replace('PRJ/', '')}</p>
+                    </div>
+
+                    <p>Pada hari ini <strong>${p.date || '16 September 2026'}</strong>, telah dibuat dan ditandatangani perjanjian kerja konstruksi steel oleh dan antara:</p>
+
+                    <div class="space-y-2 bg-slate-50 p-3 rounded border border-slate-200">
+                        <p>1. <strong>${cust.name}</strong>, Bertindak atas nama perorangan/perusahaan yang berkedudukan di ${cust.address}, selanjutnya disebut sebagai <strong>PIHAK PERTAMA (Pemberi Kerja)</strong>.</p>
+                        <p>2. <strong>${comp.director}</strong>, Jabatan Direktur <strong>${comp.name}</strong>, berkedudukan di ${comp.address}, selanjutnya disebut sebagai <strong>PIHAK KEDUA (Penerima Kerja)</strong>.</p>
+                    </div>
+
+                    <!-- Tabel Item Pekerjaan Proyek yang Akan Dikerjakan -->
+                    <div class="space-y-2 pt-2">
+                        <h3 class="font-bold text-slate-800 text-xs border-b pb-1 flex items-center justify-between">
+                            <span>Rincian Item & Spesifikasi Pekerjaan Proyek:</span>
+                            <span class="text-[10px] text-slate-500 font-normal">Sesuai Kesepakatan Kontrak</span>
+                        </h3>
+                        <table class="w-full text-left border-collapse text-xs">
+                            <thead>
+                                <tr class="bg-slate-900 text-white font-bold uppercase">
+                                    <th class="p-2 border border-slate-700 text-center w-8">NO</th>
+                                    <th class="p-2 border border-slate-700">ITEM PEKERJAAN</th>
+                                    <th class="p-2 border border-slate-700">SPESIFIKASI MATERIAL</th>
+                                    <th class="p-2 border border-slate-700 text-center w-12">QTY</th>
+                                    <th class="p-2 border border-slate-700 text-center w-12">SAT</th>
+                                </tr>
+                            </thead>
+                            <tbody class="divide-y divide-slate-200">
+                                ${p.rabItems.map((item, idx) => `
+                                    <tr>
+                                        <td class="p-2 border text-center font-bold text-slate-400">${idx + 1}</td>
+                                        <td class="p-2 border font-bold text-slate-800">${item.item}</td>
+                                        <td class="p-2 border text-slate-600">${item.spec}</td>
+                                        <td class="p-2 border text-center font-bold">${item.qty}</td>
+                                        <td class="p-2 border text-center text-slate-500">${item.unit}</td>
+                                    </tr>
+                                `).join('')}
+                            </tbody>
+                        </table>
+                    </div>
+
+                    <div class="space-y-3 pt-2">
+                        <h3 class="font-bold text-slate-800 text-xs border-b pb-1">Pasal-Pasal Perjanjian (Editable):</h3>
+                        ${p.contractClauses.map((clause, idx) => `
+                            <div class="flex items-start space-x-2 group">
+                                <span class="font-bold text-slate-700 min-w-[60px]">Pasal ${idx + 1}:</span>
+                                <p contenteditable="true" onblur="saveDocEdit(${idx}, this.innerText)" class="flex-1 text-slate-800 bg-amber-50/20 p-1.5 rounded">${clause}</p>
+                                <button onclick="removeClause(${idx})" class="text-rose-400 hover:text-rose-600 no-print opacity-0 group-hover:opacity-100 p-1"><i class="fa-solid fa-xmark"></i></button>
+                            </div>
+                        `).join('')}
+
+                        <button onclick="addNewClause()" class="text-xs bg-slate-100 hover:bg-slate-200 text-slate-700 px-3 py-1.5 rounded font-bold border border-slate-300 no-print flex items-center space-x-1">
+                            <i class="fa-solid fa-plus text-amber-500"></i>
+                            <span>Tambah Pasal Baru</span>
+                        </button>
+                    </div>
+
+                    ${generateDualSignatureHTML(cust.name, comp.director)}
+                </div>
+            `;
+        }
+
+        function generateSpkHTML(p) {
+            const cust = appState.customers.find(c => c.id === p.customerId) || { name: 'Pemberi Kerja' };
+            const comp = appState.company;
+
+            return `
+                <div class="space-y-4 text-xs">
+                    <div class="text-center space-y-1 border-b pb-3">
+                        <h2 class="text-sm font-extrabold uppercase tracking-wide text-indigo-900">SURAT PERINTAH KERJA (SPK PRODUKSI WORKSHOP)</h2>
+                        <p class="text-slate-500 font-mono text-[11px]">Nomor: SPK/${p.id.replace('PRJ/', '')}</p>
+                    </div>
+
+                    <div class="grid grid-cols-2 gap-4 bg-slate-50 p-3 rounded border border-slate-200">
+                        <div>
+                            <span class="text-slate-400 text-[10px] uppercase font-bold block">PEMBERI KERJA:</span>
+                            <span class="font-bold text-slate-800">${cust.name}</span>
+                            <p class="text-slate-600">${p.location}</p>
+                        </div>
+                        <div class="text-right">
+                            <span class="text-slate-400 text-[10px] uppercase font-bold block">TARGET FABRIKASI:</span>
+                            <span class="font-bold text-slate-800">${p.title}</span>
+                            <p class="text-indigo-600 font-bold">Kategori: ${p.category}</p>
+                        </div>
+                    </div>
+
+                    <div class="space-y-2">
+                        <h3 class="font-bold text-slate-800 text-xs">Tabel Spesifikasi Pekerjaan Produksi Workshop:</h3>
+                        <table class="w-full text-left border-collapse text-xs">
+                            <thead>
+                                <tr class="bg-indigo-900 text-white font-bold uppercase">
+                                    <th class="p-2 border text-center w-8">NO</th>
+                                    <th class="p-2 border">ITEM FABRIKASI</th>
+                                    <th class="p-2 border">MATERIAL & FINISHING</th>
+                                    <th class="p-2 border text-center w-16">QTY</th>
+                                </tr>
+                            </thead>
+                            <tbody class="divide-y divide-slate-200">
+                                ${p.rabItems.map((item, idx) => `
+                                    <tr>
+                                        <td class="p-2 border text-center font-bold text-slate-400">${idx + 1}</td>
+                                        <td class="p-2 border font-bold text-slate-800">${item.item}</td>
+                                        <td class="p-2 border text-slate-600">${item.spec}</td>
+                                        <td class="p-2 border text-center font-bold text-indigo-700">${item.qty} ${item.unit}</td>
+                                    </tr>
+                                `).join('')}
+                            </tbody>
+                        </table>
+                    </div>
+
+                    <div class="space-y-1 bg-amber-50 p-3 rounded border border-amber-200">
+                        <h4 class="font-bold text-amber-900">Catatan Khusus Kepala Workshop:</h4>
+                        <p contenteditable="true" onblur="appState.projects.find(prj => prj.id === '${p.id}').spkNotes = this.innerText; saveStateToStorage();" class="text-amber-950 leading-relaxed">${p.spkNotes}</p>
+                    </div>
+
+                    ${generateDualSignatureHTML(cust.name, comp.director)}
+                </div>
+            `;
+        }
+
+        function generateInvoiceHTML(p) {
+            const cust = appState.customers.find(c => c.id === p.customerId) || { name: 'Pemberi Kerja' };
+            const comp = appState.company;
+            const t = calculateProjectTotals(p);
+            const sisa = t.grandTotal - (Number(p.dpPaid) || 0);
+
+            return `
+                <div class="space-y-3 text-xs">
+                    <div class="flex justify-between items-start border-b pb-2">
+                        <div>
+                            <span class="text-slate-400 text-[10px] uppercase font-bold block">DITAGIHKAN KEPADA:</span>
+                            <span class="font-bold text-slate-900 text-sm">${cust.name}</span>
+                            <p class="text-slate-600">${cust.address}</p>
+                        </div>
+                        <div class="text-right">
+                            <span class="bg-emerald-100 text-emerald-800 font-bold px-2.5 py-1 rounded text-[11px] uppercase">OFFICIAL INVOICE</span>
+                            <p class="text-slate-500 font-mono text-[11px] mt-1">Ref Proyek: ${p.id}</p>
+                        </div>
+                    </div>
+
+                    <table class="w-full text-left border-collapse text-xs">
+                        <thead>
+                            <tr class="bg-slate-900 text-white font-bold uppercase">
+                                <th class="p-2 border border-slate-700">DESKRIPSI TAGIHAN PEKERJAAN</th>
+                                <th class="p-2 border border-slate-700 text-right w-36">SUBTOTAL</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <tr>
+                                <td class="p-2.5 border font-semibold text-slate-800">
+                                    ${p.title}
+                                    <p class="text-[11px] text-slate-500 font-normal">Sesuai Rincian Anggaran Biaya (RAB) Penawaran ${p.id}</p>
+                                </td>
+                                <td class="p-2.5 border text-right font-bold text-slate-900">${formatRupiah(t.subtotal)}</td>
+                            </tr>
+                        </tbody>
+                    </table>
+
+                    <div class="grid grid-cols-2 gap-4 pt-1">
+                        <!-- Bank Details Left -->
+                        <div class="bg-slate-50 p-3 rounded border border-slate-200 space-y-1">
+                            <span class="text-[10px] font-bold text-slate-500 uppercase block">REKENING PEMBAYARAN:</span>
+                            <p class="font-bold text-slate-800 text-sm">${comp.bankName}</p>
+                            <p class="font-mono text-amber-600 font-extrabold text-sm">${comp.bankAccNo}</p>
+                            <p class="text-slate-600 text-[11px]">A.N: ${comp.bankAccName}</p>
+                        </div>
+
+                        <!-- Totals Right -->
+                        <div class="space-y-1 text-right text-xs">
+                            <div class="flex justify-between text-slate-600">
+                                <span>Subtotal:</span>
+                                <span class="font-bold text-slate-800">${formatRupiah(t.subtotal)}</span>
+                            </div>
+                            <div class="flex justify-between text-slate-600">
+                                <span>PPN (${p.includePpn ? comp.ppnRate : 0}%):</span>
+                                <span class="font-bold text-slate-800">${formatRupiah(t.ppn)}</span>
+                            </div>
+                            <div class="flex justify-between font-bold text-emerald-700 pt-1 border-t">
+                                <span>DP / TERBAYAR (Editable):</span>
+                                <input type="number" value="${p.dpPaid}" onchange="updateInvoiceDp(this.value)" class="w-32 p-0.5 border text-right font-bold bg-emerald-50 text-emerald-800 rounded">
+                            </div>
+                            <div class="flex justify-between text-base font-extrabold text-rose-700 pt-1 border-t border-slate-800">
+                                <span>SISA TAGIHAN:</span>
+                                <span>${formatRupiah(sisa)}</span>
+                            </div>
+                        </div>
+                    </div>
+
+                    ${generateDualSignatureHTML(cust.name, comp.director)}
+                </div>
+            `;
+        }
+
+        function generateKwitansiHTML(p) {
+            const cust = appState.customers.find(c => c.id === p.customerId) || { name: 'Pemberi Kerja' };
+            const comp = appState.company;
+            const t = calculateProjectTotals(p);
+            const sisa = t.grandTotal - (Number(p.dpPaid) || 0);
+
+            let statusClass = "text-rose-600 border-rose-600";
+            let statusText = "BELUM BAYAR";
+            let descPrefix = "Tagihan Pekerjaan";
+            let paymentStatusNote = "Tagihan Pekerjaan Proyek";
+            let amountPaid = 0;
+
+            if (p.dpPaid >= t.grandTotal && t.grandTotal > 0) {
+                statusClass = "text-emerald-600 border-emerald-600";
+                statusText = "LUNAS";
+                descPrefix = "Pelunasan Pekerjaan";
+                paymentStatusNote = "Pelunasan Pekerjaan Proyek";
+                amountPaid = t.grandTotal;
+            } else if (p.dpPaid > 0) {
+                statusClass = "text-amber-500 border-amber-500";
+                statusText = "PAID DP";
+                descPrefix = "Pembayaran DP (Down Payment) Pekerjaan";
+                paymentStatusNote = "Pembayaran DP (Down Payment) Masuk Proyek";
+                amountPaid = p.dpPaid;
+            }
+
+            return `
+                <div class="space-y-3 text-xs relative overflow-hidden">
+                    <div class="watermark-banner ${statusClass}">${statusText}</div>
+
+                    <div class="flex justify-between items-center border-b pb-2">
+                        <span class="font-extrabold text-sm uppercase tracking-wide text-slate-900">KWITANSI BUKTI PEMBAYARAN</span>
+                        <span class="text-xs font-mono font-bold bg-slate-100 px-2.5 py-1 rounded">Ref. Invoice: INV/${p.id.replace('PRJ/', '')}</span>
+                    </div>
+
+                    <div class="grid grid-cols-3 gap-3 bg-slate-50 p-3 rounded border border-slate-200">
+                        <div>
+                            <span class="text-slate-400 text-[10px] uppercase font-bold block">TELAH DITERIMA DARI:</span>
+                            <span class="font-bold text-slate-800 text-sm">${cust.name}</span>
+                        </div>
+                        <div class="col-span-2 text-right">
+                            <span class="text-slate-400 text-[10px] uppercase font-bold block">UNTUK PEMBAYARAN:</span>
+                            <span class="font-bold text-slate-800">${descPrefix}: ${p.title}</span>
+                        </div>
+                    </div>
+
+                    <!-- Number First, Spelled Nominal Below -->
+                    <div class="bg-amber-50/60 p-3 rounded border border-amber-300 space-y-1">
+                        <div class="flex justify-between items-center">
+                            <span class="text-slate-500 text-xs font-bold uppercase">JUMLAH DITERIMA (NOMINAL ANGKA):</span>
+                            <span class="text-xl font-extrabold text-slate-900 font-mono">${formatRupiah(amountPaid)}</span>
+                        </div>
+                        <div class="pt-1 border-t border-amber-200/60">
+                            <span class="text-slate-500 text-[10px] font-bold uppercase block">TERBILANG (NOMINAL TULISAN):</span>
+                            <p class="font-bold text-amber-900 text-xs italic"># ${terbilangRupiah(amountPaid)} #</p>
+                            <div class="mt-1.5 pt-1.5 border-t border-amber-200/50 flex items-center justify-between text-[11px]">
+                                <span class="text-slate-500 font-medium">Keterangan Status Pembayaran:</span>
+                                <span class="font-bold text-slate-900 bg-amber-100/80 px-2.5 py-0.5 rounded border border-amber-300/80">${paymentStatusNote}</span>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="grid grid-cols-3 gap-2 text-[11px] bg-slate-100 p-2 rounded text-slate-600">
+                        <div>Total Kontrak: <strong class="text-slate-800">${formatRupiah(t.grandTotal)}</strong></div>
+                        <div>DP Terbayar: <strong class="text-emerald-700">${formatRupiah(p.dpPaid)}</strong></div>
+                        <div>Sisa Pelunasan: <strong class="text-rose-700">${formatRupiah(sisa)}</strong></div>
+                    </div>
+
+                    ${generateDualSignatureHTML(cust.name, comp.director)}
+                </div>
+            `;
+        }
+
+        function generateBastHTML(p) {
+            const cust = appState.customers.find(c => c.id === p.customerId) || { name: 'Pemberi Kerja' };
+            const comp = appState.company;
+
+            return `
+                <div class="space-y-4 text-xs leading-relaxed">
+                    <div class="text-center space-y-1 border-b pb-3">
+                        <h2 class="text-sm font-extrabold uppercase tracking-wide">BERITA ACARA SERAH TERIMA PEKERJAAN (BAST)</h2>
+                        <p class="text-slate-500 font-mono text-[11px]">Nomor: BAST/${p.id.replace('PRJ/', '')}</p>
+                    </div>
+
+                    <p>Pada hari ini <strong>${p.date || '16 September 2026'}</strong>, bertempat di lokasi proyek <strong>${p.location}</strong>, telah dilaksanakan serah terima hasil pekerjaan antara:</p>
+
+                    <div class="space-y-2 bg-slate-50 p-3 rounded border border-slate-200">
+                        <p>1. <strong>${comp.director}</strong> (<strong>${comp.name}</strong>), bertindak sebagai <strong>PIHAK KEDUA (Penerima Kerja / Pelaksana)</strong>.</p>
+                        <p>2. <strong>${cust.name}</strong>, bertindak sebagai <strong>PIHAK PERTAMA (Pemberi Kerja / Pemilik)</strong>.</p>
+                    </div>
+
+                    <p>Dengan ini menyatakan bahwa PIHAK KEDUA telah menyelesaikan seluruh pekerjaan konstruksi steel <strong>"${p.title}"</strong> 100% sesuai spesifikasi kontrak. PIHAK PERTAMA telah memeriksa dan menerima hasil pekerjaan tersebut dengan baik.</p>
+
+                    ${generateDualSignatureHTML(cust.name, comp.director)}
+                </div>
+            `;
+        }
+
+        function generateDualSignatureHTML(custName, directorName) {
+            const comp = appState.company;
+            return `
+                <div class="pt-6 grid grid-cols-2 gap-8 text-center text-xs border-t border-slate-200 mt-6">
+                    <!-- PIHAK PERTAMA LEFT -->
+                    <div class="flex flex-col justify-between items-center h-44">
+                        <span class="font-bold text-slate-700 block uppercase">PIHAK PERTAMA<br>(PEMBERI KERJA)</span>
+                        <div class="h-20 flex items-center justify-center">
+                            <span class="text-slate-300 italic text-[11px]">[ Tanda Tangan Customer ]</span>
+                        </div>
+                        <div>
+                            <p class="font-bold text-slate-900 border-b border-slate-800 inline-block px-4 pb-0.5">${custName}</p>
+                            <span class="text-[10px] text-slate-500 block mt-0.5">Pemberi Kerja / Pemilik</span>
+                        </div>
+                    </div>
+
+                    <!-- PIHAK KEDUA RIGHT -->
+                    <div class="flex flex-col justify-between items-center h-44 relative">
+                        <span class="font-bold text-slate-700 block uppercase">PIHAK KEDUA<br>(PENERIMA KERJA)</span>
+                        
+                        <div class="h-20 flex items-center justify-center relative w-full">
+                            ${comp.signatureUrl ? `<img src="${comp.signatureUrl}" class="max-h-16 object-contain z-10">` : '<span class="text-slate-300 italic text-[11px]">[ Tanda Tangan Direktur ]</span>'}
+                            ${comp.showStamp && comp.stampUrl ? `<img src="${comp.stampUrl}" class="max-h-20 stamp-overlay z-0 absolute">` : ''}
+                        </div>
+
+                        <div>
+                            <p class="font-bold text-slate-900 border-b border-slate-800 inline-block px-4 pb-0.5">${directorName}</p>
+                            <span class="text-[10px] text-slate-500 block mt-0.5">${comp.name}</span>
+                        </div>
+                    </div>
+                </div>
+            `;
+        }
+
+        function updateInvoiceDp(val) {
+            const p = appState.projects.find(prj => prj.id === appState.activeProjectId);
+            if (!p) return;
+            p.dpPaid = Number(val) || 0;
+            saveStateToStorage();
+            switchDocType('invoice');
+            renderDashboard();
+        }
+
+        function promptEditDp() {
+            const p = appState.projects.find(prj => prj.id === appState.activeProjectId);
+            if (!p) return;
+            const newDp = prompt("Masukkan jumlah DP / Pembayaran Masuk (Rp):", p.dpPaid);
+            if (newDp !== null) {
+                p.dpPaid = Number(newDp) || 0;
+                saveStateToStorage();
+                renderDashboard();
+                showToast("Jumlah DP berhasil diperbarui!");
+            }
+        }
+
+        function saveDocEdit(idx, val) {
+            const p = appState.projects.find(prj => prj.id === appState.activeProjectId);
+            if (!p || !p.contractClauses[idx]) return;
+            p.contractClauses[idx] = val;
+            saveStateToStorage();
+        }
+
+        function addNewClause() {
+            const p = appState.projects.find(prj => prj.id === appState.activeProjectId);
+            if (!p) return;
+            p.contractClauses.push("Isi pasal tambahan baru...");
+            saveStateToStorage();
+            switchDocType('kontrak');
+        }
+
+        function removeClause(idx) {
+            const p = appState.projects.find(prj => prj.id === appState.activeProjectId);
+            if (!p) return;
+            p.contractClauses.splice(idx, 1);
+            saveStateToStorage();
+            switchDocType('kontrak');
+        }
+
+        function downloadPDF() {
+            const element = document.getElementById('printableArea');
+            if (!element) return;
+            showToast("Memproses konversi dokumen PDF...");
+
+            const opt = {
+                margin:       [8, 8, 8, 8],
+                filename:     `${appState.activeDocType.toUpperCase()}_${appState.activeProjectId.replace(/\//g, '-')}.pdf`,
+                image:        { type: 'jpeg', quality: 0.98 },
+                html2canvas:  { scale: 2, useCORS: true, logging: false },
+                jsPDF:        { unit: 'mm', format: 'a4', orientation: 'portrait' }
+            };
+
+            try {
+                html2pdf().set(opt).from(element).save().then(() => {
+                    showToast("File PDF berhasil diunduh!");
+                }).catch(err => {
+                    console.warn("Direct PDF error, fallback to window print:", err);
+                    triggerPrint();
+                });
+            } catch(e) {
+                triggerPrint();
+            }
+        }
+
+        function exportToWord() {
+            const el = document.getElementById('printableArea');
+            if (!el) return;
+            const htmlContent = `
+                <html xmlns:o='urn:schemas-microsoft-com:office:office' xmlns:w='urn:schemas-microsoft-com:office:word' xmlns='http://www.w3.org/TR/REC-html40'>
+                <head><title>Export Word</title></head>
+                <body>${el.innerHTML}</body>
+                </html>
+            `;
+            const blob = new Blob(['\ufeff', htmlContent], { type: 'application/msword' });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = `${appState.activeDocType.toUpperCase()}_${appState.activeProjectId.replace(/\//g, '-')}.doc`;
+            a.click();
+            URL.revokeObjectURL(url);
+            showToast("Dokumen Word (.doc) berhasil diexport!");
+        }
+
+        function triggerPrint() {
+            window.print();
+        }
+    </script>
+</body>
+</html>
