@@ -721,7 +721,7 @@
                                 <input type="number" id="cfgPpnRate" class="w-full p-2.5 border border-slate-300 rounded-xl font-bold focus:border-brand-accent focus:outline-none" value="11">
                             </div>
                             <div>
-                                <label class="font-semibold text-slate-600 block mb-1">Nama Direktur (Penerima Kerja):</label>
+                                <label class="font-semibold text-slate-600 block mb-1">Nama Pemilik (Penerima Kerja):</label>
                                 <input type="text" id="cfgDirector" class="w-full p-2.5 border border-slate-300 rounded-xl font-semibold focus:border-brand-accent focus:outline-none" value="Ir. Hendra Wijaya">
                             </div>
                         </div>
@@ -1230,7 +1230,7 @@
         function renderDashboard() {
             populateProjectSelector();
             const comp = appState.company;
-            document.getElementById('dashDirectorName').innerText = comp.director || 'Direktur';
+            document.getElementById('dashDirectorName').innerText = comp.director || 'Pemilik';
             document.getElementById('dashCompanyName').innerText = comp.name || 'PT';
 
             let totalKontrakAll = 0;
@@ -1897,7 +1897,7 @@
 
                     <div class="space-y-2 bg-slate-50 p-3 rounded border border-slate-200">
                         <p>1. <strong>${cust.name}</strong>, Bertindak atas nama perorangan/perusahaan yang berkedudukan di ${cust.address}, selanjutnya disebut sebagai <strong>PIHAK PERTAMA (Pemberi Kerja)</strong>.</p>
-                        <p>2. <strong>${comp.director}</strong>, Jabatan Direktur <strong>${comp.name}</strong>, berkedudukan di ${comp.address}, selanjutnya disebut sebagai <strong>PIHAK KEDUA (Penerima Kerja)</strong>.</p>
+                        <p>2. <strong>${comp.director}</strong>, Jabatan Pemilik Perusahaan <strong>${comp.name}</strong>, berkedudukan di ${comp.address}, selanjutnya disebut sebagai <strong>PIHAK KEDUA (Penerima Kerja)</strong>.</p>
                     </div>
 
                     <!-- Tabel Item Pekerjaan Proyek yang Akan Dikerjakan -->
@@ -2201,7 +2201,7 @@
                         <span class="font-bold text-slate-700 block uppercase">PIHAK KEDUA<br>(PENERIMA KERJA)</span>
                         
                         <div class="h-20 flex items-center justify-center relative w-full">
-                            ${comp.signatureUrl ? `<img src="${comp.signatureUrl}" class="max-h-16 object-contain z-10">` : '<span class="text-slate-300 italic text-[11px]">[ Tanda Tangan Direktur ]</span>'}
+                            ${comp.signatureUrl ? `<img src="${comp.signatureUrl}" class="max-h-16 object-contain z-10">` : '<span class="text-slate-300 italic text-[11px]">[ Tanda Tangan Pemilik ]</span>'}
                             ${comp.showStamp && comp.stampUrl ? `<img src="${comp.stampUrl}" class="max-h-20 stamp-overlay z-0 absolute">` : ''}
                         </div>
 
